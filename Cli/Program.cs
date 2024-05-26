@@ -7,27 +7,11 @@ namespace Cli;
 
 internal class Program
 {
-    
     /// <summary>
-    /// File manager instance.
+    ///     File manager instance.
     /// </summary>
-    private FileManager _fileManager;
-    
-    public static int Main(string[] args)
-    {
-        // Create a new instance of the program
-        Program program = new();
-        
-        // Process the arguments
-        return Parser.Default.ParseArguments<GuiOptions, BuildOptions, ImportOptions>(args)
-            .MapResult(
-                (GuiOptions opts) => program.RunGui(opts),
-                (BuildOptions opts) => program.Build(opts),
-                (ImportOptions opts) => program.ImportFiles(opts),
-                errs => 1
-            );
-    }
-    
+    private readonly FileManager _fileManager;
+
     private Program()
     {
         // Initialize the file manager with the current directory from which the program was run
@@ -40,6 +24,21 @@ internal class Program
             Console.WriteLine(e.Message);
             Environment.Exit(1);
         }
+    }
+
+    public static int Main(string[] args)
+    {
+        // Create a new instance of the program
+        Program program = new();
+
+        // Process the arguments
+        return Parser.Default.ParseArguments<GuiOptions, BuildOptions, ImportOptions>(args)
+            .MapResult(
+                (GuiOptions opts) => program.RunGui(opts),
+                (BuildOptions opts) => program.Build(opts),
+                (ImportOptions opts) => program.ImportFiles(opts),
+                errs => 1
+            );
     }
 
     private int RunGui(GuiOptions opts)
@@ -56,7 +55,7 @@ internal class Program
 
         // Wait for the GUI to exit
         Process.GetCurrentProcess().WaitForExit();
-        
+
         return 0;
     }
 
@@ -76,18 +75,18 @@ internal class Program
                 return 1;
         }
     }
-    
+
     private int BuildInit()
     {
         // Return the exit code
         Console.WriteLine("Building new management system.");
-        
+
         // Create the management system
         _fileManager.InitialiseDirectory();
-        
+
         return 0;
     }
-    
+
     private int BuildExisting()
     {
         // Return the exit code
@@ -118,16 +117,16 @@ internal class Program
         {
             get
             {
-                yield return new Example("Initialize a new management system", new BuildOptions(){Mode = "new"});
-                yield return new Example("Initialize a new management system from existing sources in this directory", new BuildOptions() {Mode = "existing"});
+                yield return new Example("Initialize a new management system", new BuildOptions { Mode = "new" });
+                yield return new Example("Initialize a new management system from existing sources in this directory", new BuildOptions { Mode = "existing" });
             }
         }
-        
+
         [Option('m', "mode", HelpText = "The build mode", Required = true)]
         public required string Mode { get; set; }
     }
 
-    
+
     [Verb("import", HelpText = "Import files")]
     // ReSharper disable once ClassNeverInstantiated.Global
     public class ImportOptions
@@ -138,19 +137,19 @@ internal class Program
         {
             get
             {
-                yield return new Example("Import a file", new ImportOptions {File = "file.txt"});
-                yield return new Example("Import multiple files from a directory", new ImportOptions {File = "directory", Bulk = true});
+                yield return new Example("Import a file", new ImportOptions { File = "file.txt" });
+                yield return new Example("Import multiple files from a directory", new ImportOptions { File = "directory", Bulk = true });
             }
         }
-        
+
         /// <summary>
-        /// The file/directory to import
+        ///     The file/directory to import
         /// </summary>
         [Value(0, MetaName = "file", HelpText = "File to import", Required = true)]
         public required string File { get; set; }
 
         /// <summary>
-        /// Import multiple files from a directory
+        ///     Import multiple files from a directory
         /// </summary>
         [Option('b', "bulk", HelpText = "Import multiple files from a directory", Required = false, Default = false)]
         public bool Bulk { get; set; }
