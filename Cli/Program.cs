@@ -1,10 +1,18 @@
 ﻿using System.Diagnostics;
 using CommandLine;
+using CommandLine.Text;
+using FileMgr;
 
 namespace Cli;
 
 internal class Program
 {
+    
+    /// <summary>
+    /// File manager instance.
+    /// </summary>
+    private FileManager _fileManager;
+    
     public static int Main(string[] args)
     {
         // Create a new instance of the program
@@ -18,6 +26,20 @@ internal class Program
                 (ImportOptions opts) => program.ImportFiles(opts),
                 errs => 1
             );
+    }
+    
+    private Program()
+    {
+        // Initialize the file manager with the current directory from which the program was run
+        try
+        {
+            _fileManager = new FileManager(Directory.GetCurrentDirectory());
+        }
+        catch (MissingFileException e)
+        {
+            Console.WriteLine(e.Message);
+            Environment.Exit(1);
+        }
     }
 
     private int RunGui(GuiOptions opts)
@@ -40,7 +62,36 @@ internal class Program
 
     private int Build(BuildOptions opts)
     {
+        // List options
+        Console.WriteLine("Options: " + opts.Mode);
+        switch (opts.Mode)
+        {
+            // Run the appropriate build command
+            case "new":
+                return BuildInit();
+            case "existing":
+                return BuildExisting();
+            default:
+                Console.WriteLine("Invalid build command.");
+                return 1;
+        }
+    }
+    
+    private int BuildInit()
+    {
         // Return the exit code
+        Console.WriteLine("Building new management system.");
+        
+        // Create the management system
+        _fileManager.InitialiseDirectory();
+        
+        return 0;
+    }
+    
+    private int BuildExisting()
+    {
+        // Return the exit code
+        Console.WriteLine("Building management system from existing sources.");
         return 2;
     }
 
@@ -61,6 +112,19 @@ internal class Program
     // ReSharper disable once ClassNeverInstantiated.Local
     private class BuildOptions
     {
+        [Usage(ApplicationAlias = "tagster")]
+        // ReSharper disable once UnusedMember.Global
+        public static IEnumerable<Example> Examples
+        {
+            get
+            {
+                yield return new Example("Initialize a new management system", new BuildOptions(){Mode = "new"});
+                yield return new Example("Initialize a new management system from existing sources in this directory", new BuildOptions() {Mode = "existing"});
+            }
+        }
+        
+        [Option('m', "mode", HelpText = "The build mode", Required = true)]
+        public required string Mode { get; set; }
     }
 
     
@@ -68,6 +132,17 @@ internal class Program
     // ReSharper disable once ClassNeverInstantiated.Global
     public class ImportOptions
     {
+        [Usage(ApplicationAlias = "tagster")]
+        // ReSharper disable once UnusedMember.Global
+        public static IEnumerable<Example> Examples
+        {
+            get
+            {
+                yield return new Example("Import a file", new ImportOptions {File = "file.txt"});
+                yield return new Example("Import multiple files from a directory", new ImportOptions {File = "directory", Bulk = true});
+            }
+        }
+        
         /// <summary>
         /// The file/directory to import
         /// </summary>

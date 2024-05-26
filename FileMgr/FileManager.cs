@@ -1,8 +1,17 @@
 ﻿using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Principal;
+using System.Text.Json.Serialization;
 using Microsoft.Win32;
+using System.Text.Json;
 
 namespace FileMgr;
+
+internal class ApplicationConfig
+{
+    public required string Delimiter { get; set; }
+}
+
 
 /// <summary>
 ///     Public exposed class for file management using tags and file paths.
@@ -22,8 +31,19 @@ public class FileManager
     /// <summary>
     ///     The database connection for the program.
     /// </summary>
-    private readonly Database _database;
-
+    private Database _database;
+    
+    /// <summary>
+    /// Stores persistent application configuration.
+    /// </summary>
+    private ApplicationConfig _config;
+    
+    /// <summary>
+    /// Stores whether the file manager has been initialised.
+    /// </summary>
+    private bool _initialised = false;
+    
+    
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Miscellaneous Methods
      */
@@ -32,35 +52,91 @@ public class FileManager
     ///     Initializes a new instance of the <see cref="FileManager" /> class.
     /// </summary>
     /// <param name="filePath">The path to the data directory.</param>
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     public FileManager(DirectoryInfo filePath)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
         // Set the file path
         _filePath = filePath;
+        
+        // Check if a .tagster file exists in the directory.
+        if (!File.Exists(_filePath.FullName + "/.tagster"))
+        {
+            throw new MissingFileException("The .tagster file does not exist.", 0);
+        }
+        
+        // Read the contents as a json object.
+        string json = File.ReadAllText(".tagster");
+        _config = JsonSerializer.Deserialize<ApplicationConfig>(json) ?? throw new InvalidOperationException("Json error in .tagster file.");
+        
+        // Do the registry checks
+        DoRegistryChecks();
+    }
 
-        // Check the file path for a database
-        bool initialised = false;
-
-        // Check if the file path exists
-        if (!_filePath.Exists) initialised = false;
-
-        // Check if the database file exists
-        if (!File.Exists(_filePath.FullName + "/database.db")) initialised = false;
-
-        // Conditionally connect to the database. This calls the InitialiseNew method if the database does not exist.
-        _database = !initialised ? Database.InitialiseNew(_filePath) : new Database("database.db");
-
+    /// <summary>
+    /// Ensures that the program can run by checking the registry for the LongPathsEnabled key.
+    /// </summary>
+    private void DoRegistryChecks()
+    {
+        // Check the state of the HKEY_LOCAL_MACHINE\SOFTWARE\tagster\LongPathsEnabled registry key
+        RegistryKey applicationKeys = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\tagster", true) ?? Registry.CurrentUser.CreateSubKey(@"SOFTWARE\tagster");
+        
+        // Check if the key exists or is not set to 1.
+        if (
+            applicationKeys.GetValue("LongPathsEnabled") is null ||
+            (int)(applicationKeys.GetValue("LongPathsEnabled") ?? 0) != 1
+        )
+        {
+            // The key does not exist, so continue with the checks.
+        }
+        else
+        {
+            // The key exists and is set to 1, so we can continue.
+            return;
+        }
+        
         // Check the state of the HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled registry key as the program will not work without it.
-        using RegistryKey keys = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\FileSystem", true)!; // We can ignore the nullability warning here as we know the key exists.
+        RegistryKey machineKeys = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\FileSystem", true)!; // We can ignore the nullability warning here as we know the key exists.
 
         // Now check if the key exists or is not set to 1.
         if (
-                keys.GetValue("LongPathsEnabled") is null ||
-                (int)(keys.GetValue("LongPathsEnabled") ?? 0) != 1
-            )
+            machineKeys.GetValue("LongPathsEnabled") is null ||
+            (int)(machineKeys.GetValue("LongPathsEnabled") ?? 0) != 1
+        )
+        {
             // The key does not exist, so we need to create it.
-            keys.SetValue("LongPathsEnabled", 1, RegistryValueKind.DWord);
+            machineKeys.SetValue("LongPathsEnabled", 1, RegistryValueKind.DWord); 
+        }
+        
+        // Now add a registry key for this app to mark this action as done 
+        applicationKeys.SetValue("LongPathsEnabled", 1, RegistryValueKind.DWord);
+    }
 
-        // The key is now set to 1, so we can continue.
+    public void Connect()
+    {
+        // Check if the database exists.
+        if (!File.Exists(_filePath.FullName + "/database.db"))
+        {
+            // Throw an exception if the database does not exist.
+            throw new UninitialisedDatabaseException("The database does not exist.");
+        }
+        // The database exists, so we can connect to it.
+        _database = new Database(_filePath.FullName + "/database.db");
+        _initialised = true;
+    }
+
+    /// <summary>
+    /// Called by the frontend to initialise the directory by creating the database and indexing the files.
+    /// </summary>
+    public void InitialiseDirectory(bool fromExistingSources = false)
+    {
+        _database = Database.InitialiseNew(_filePath);
+        
+        // Now enumerate through the files in the directory and add them to the database.
+        foreach (FileInfo file in _filePath.EnumerateFiles()) _database.AddFile(file, fromExistingSources);
+        
+        // Set the initialised flag to true.
+        _initialised = true;
     }
     
     // Overload for string path
@@ -490,3 +566,5 @@ public class MissingFileException(string message, int id) : Exception(message)
 /// </summary>
 /// <param name="message">Error message</param>
 public class DuplicateTagsException(string message) : Exception(message);
+
+public class UninitialisedDatabaseException(string message) : Exception(message);
