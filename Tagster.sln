@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileMgr", "FileMgr\FileMgr.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cli", "Cli\Cli.csproj", "{6FC6A0E4-49CE-4E1C-B23B-E134438834AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegistryPatcher", "RegistryPatcher\RegistryPatcher.csproj", "{89F1D724-D254-4A41-8E76-6CD620F95183}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{6FC6A0E4-49CE-4E1C-B23B-E134438834AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6FC6A0E4-49CE-4E1C-B23B-E134438834AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6FC6A0E4-49CE-4E1C-B23B-E134438834AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89F1D724-D254-4A41-8E76-6CD620F95183}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89F1D724-D254-4A41-8E76-6CD620F95183}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89F1D724-D254-4A41-8E76-6CD620F95183}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89F1D724-D254-4A41-8E76-6CD620F95183}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
