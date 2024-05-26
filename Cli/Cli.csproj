@@ -1,20 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>tagster</AssemblyName>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\FileMgr\FileMgr.csproj" />
+      <ProjectReference Include="..\RegistryPatcher\RegistryPatcher.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="CommandLineParser" Version="2.9.1" />
-      <PackageReference Include="Json.Net" Version="1.0.33" />
     </ItemGroup>
 
 </Project>

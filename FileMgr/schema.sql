@@ -1,0 +1,12 @@
+﻿/*
+LANG=sqlite3
+*/
+
+CREATE TABLE IF NOT EXISTS files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    mtime INTEGER NOT NULL,
+    hash TEXT NOT NULL,
+    UNIQUE(path)
+);

@@ -1,5 +1,7 @@
 ﻿using System.Data.SQLite;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Principal;
 using System.Text.Json;
 using Microsoft.Win32;
 
@@ -56,13 +58,6 @@ public class FileManager
         // Set the file path
         _filePath = filePath;
 
-        // Check if a .tagster file exists in the directory.
-        if (!File.Exists(_filePath.FullName + "/.tagster")) throw new MissingFileException("The .tagster file does not exist.", 0);
-
-        // Read the contents as a json object.
-        string json = File.ReadAllText(".tagster");
-        _config = JsonSerializer.Deserialize<ApplicationConfig>(json) ?? throw new InvalidOperationException("Json error in .tagster file.");
-
         // Do the registry checks
         DoRegistryChecks();
     }
@@ -94,16 +89,22 @@ public class FileManager
             return;
         }
 
-        // Check the state of the HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled registry key as the program will not work without it.
-        RegistryKey machineKeys = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\FileSystem", true)!; // We can ignore the nullability warning here as we know the key exists.
-
-        // Now check if the key exists or is not set to 1.
-        if (
-                machineKeys.GetValue("LongPathsEnabled") is null ||
-                (int)(machineKeys.GetValue("LongPathsEnabled") ?? 0) != 1
-            )
-            // The key does not exist, so we need to create it.
-            machineKeys.SetValue("LongPathsEnabled", 1, RegistryValueKind.DWord);
+        // Get current user
+        if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
+        {
+            // Create a new process with admin privileges
+            ProcessStartInfo processStartInfo = new("RegistryPatcher.exe");
+            processStartInfo.Verb = "runas";
+            try
+            {
+                Process.Start(processStartInfo);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Environment.Exit(1);
+            }
+        }
 
         // Now add a registry key for this app to mark this action as done 
         applicationKeys.SetValue("LongPathsEnabled", 1, RegistryValueKind.DWord);
@@ -111,6 +112,13 @@ public class FileManager
 
     public void Connect()
     {
+        // Check if a .tagster file exists in the directory.
+        if (!File.Exists(_filePath.FullName + "/.tagster")) throw new MissingFileException("The .tagster file does not exist.", 0);
+
+        // Read the contents as a json object.
+        string json = File.ReadAllText(".tagster");
+        _config = JsonSerializer.Deserialize<ApplicationConfig>(json) ?? throw new InvalidOperationException("Json error in .tagster file.");
+
         // Check if the database exists.
         if (!File.Exists(_filePath.FullName + "/database.db"))
             // Throw an exception if the database does not exist.
@@ -132,6 +140,9 @@ public class FileManager
 
         // Set the initialised flag to true.
         _initialised = true;
+
+        // Create a new .tagster file.
+        File.WriteAllText(_filePath.FullName + "/.tagster", JsonSerializer.Serialize(_config));
     }
 
     public void Dispose()
@@ -243,7 +254,7 @@ internal class Database
         Database database = new(path.FullName + "/database.db");
 
         // Read in schema.sql and execute it.
-        SQLiteCommand command = new(File.ReadAllText("schema.sql"), database._connection);
+        SQLiteCommand command = new(resources.DbSchema, database._connection);
         command.ExecuteNonQuery();
 
         // Enumerate through the files in the directory and add them to the database.
