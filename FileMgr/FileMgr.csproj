@@ -6,23 +6,20 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <PlatformTarget>x64</PlatformTarget>
+      <DocumentationFile>bin\Debug\net8.0\FileMgr.xml</DocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <EmbeddedResource Update="resources.resx">
-        <Generator>ResXFileCodeGenerator</Generator>
-        <LastGenOutput>resources.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Update="resources.Designer.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>resources.resx</DependentUpon>
-      </Compile>
+        <Content Include="schema.sql">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

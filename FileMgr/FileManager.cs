@@ -1,6 +1,7 @@
 ﻿using System.Data.SQLite;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.Json;
 using Microsoft.Win32;
@@ -63,6 +64,7 @@ public class FileManager
     }
 
     // Overload for string path
+    /// <inheritdoc />
     public FileManager(string filePath) : this(new DirectoryInfo(filePath))
     {
     }
@@ -72,6 +74,9 @@ public class FileManager
     /// </summary>
     private void DoRegistryChecks()
     {
+        // Check current platform. If it is not windows, return
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+
         // Check the state of the HKEY_LOCAL_MACHINE\SOFTWARE\tagster\LongPathsEnabled registry key
         RegistryKey applicationKeys = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\tagster", true) ?? Registry.CurrentUser.CreateSubKey(@"SOFTWARE\tagster");
 
@@ -93,8 +98,10 @@ public class FileManager
         if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
         {
             // Create a new process with admin privileges
-            ProcessStartInfo processStartInfo = new("RegistryPatcher.exe");
-            processStartInfo.Verb = "runas";
+            ProcessStartInfo processStartInfo = new("RegistryPatcher.exe") // This can be an .exe as it is only for windows
+            {
+                Verb = "runas"
+            };
             try
             {
                 Process.Start(processStartInfo);
@@ -110,6 +117,13 @@ public class FileManager
         applicationKeys.SetValue("LongPathsEnabled", 1, RegistryValueKind.DWord);
     }
 
+
+    /// <summary>
+    /// Tries to connect to an existing DB in the current working directory.
+    /// </summary>
+    /// <exception cref="MissingFileException">Thrown when a .tagster file cannot be found in the current directory.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the JSON format in a .tagster file is non-compliant.</exception>
+    /// <exception cref="UninitialisedDatabaseException">Thrown when there is no database in the current directory.</exception>
     public void Connect()
     {
         // Check if a .tagster file exists in the directory.
@@ -133,6 +147,16 @@ public class FileManager
     /// </summary>
     public void InitialiseDirectory(bool fromExistingSources = false)
     {
+        // Check if the directory has already been initialised by checking for the presence of a .tagster file.
+        if (File.Exists(_filePath.FullName + "/.tagster"))
+        {
+            // The directory has already been initialised, so connect to the database.
+            throw new AlreadyInitialisedDatabaseException("The directory has already been initialised.");
+        }
+
+        // Create a new .tagster file.
+        File.WriteAllText(_filePath.FullName + "/.tagster", JsonSerializer.Serialize(_config));
+
         _database = Database.InitialiseNew(_filePath);
 
         // Now enumerate through the files in the directory and add them to the database.
@@ -140,11 +164,12 @@ public class FileManager
 
         // Set the initialised flag to true.
         _initialised = true;
-
-        // Create a new .tagster file.
-        File.WriteAllText(_filePath.FullName + "/.tagster", JsonSerializer.Serialize(_config));
     }
 
+
+    /// <summary>
+    /// GC Method.
+    /// </summary>
     public void Dispose()
     {
         _config = null!;
@@ -155,6 +180,13 @@ public class FileManager
      * Database exposed methods
      */
 
+    /// <summary>
+    /// Adds a file to the database.
+    /// </summary>
+    /// <param name="file">Path to the file.</param>
+    /// <param name="tagsFromFileName">Flag to trigger tag extraction and creation from file name.</param>
+    /// <returns>The added file.</returns>
+    /// <exception cref="UninitialisedDatabaseException">Thrown when the database has not been connected.</exception>
     public DbFile AddFile(FileInfo file, bool tagsFromFileName = false)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
@@ -167,7 +199,7 @@ public class FileManager
         return _database.AddFile(path, tagsFromFileName, _config.Delimiter);
     }
 
-    public DbFile GetFile(int id)
+    public DbFile? GetFile(long id)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
         return _database.GetFile(id);
@@ -179,7 +211,7 @@ public class FileManager
         return _database.AddTag(tag, colour);
     }
 
-    public DbTag GetTag(int id)
+    public DbTag GetTag(long id)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
         return _database.GetTag(id)!;
@@ -197,31 +229,31 @@ public class FileManager
         return _database.GetSimilarTags(tag);
     }
 
-    public void EditTag(int id, string? tag = null, string? colour = null)
+    public void EditTag(long id, string? tag = null, string? colour = null)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
         _database.EditTag(id, tag, colour);
     }
 
-    public void AddTagToFile(int fileId, int tagId)
+    public void AddTagToFile(long fileId, long tagId)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
         _database.AddTagToFile(fileId, tagId);
     }
 
-    public void RemoveTagFromFile(int fileId, int tagId)
+    public void RemoveTagFromFile(long fileId, long tagId)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
         _database.RemoveTagFromFile(fileId, tagId);
     }
 
-    public List<DbTag?> GetTagsForFile(int fileId)
+    public List<DbTag?> GetTagsForFile(long fileId)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
         return _database.GetTagsForFile(fileId);
     }
 
-    public List<DbFile?> GetFilesWithTag(int tagId)
+    public List<DbFile?> GetFilesWithTag(long tagId)
     {
         if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
         return _database.GetFilesWithTag(tagId);
@@ -230,6 +262,9 @@ public class FileManager
 
 internal class Database
 {
+    /// <summary>
+    /// Low-level database connection.
+    /// </summary>
     private readonly SQLiteConnection _connection;
 
     /// <summary>
@@ -254,7 +289,8 @@ internal class Database
         Database database = new(path.FullName + "/database.db");
 
         // Read in schema.sql and execute it.
-        SQLiteCommand command = new(resources.DbSchema, database._connection);
+        string schema = File.ReadAllText("schema.sql");
+        SQLiteCommand command = new(schema, database._connection);
         command.ExecuteNonQuery();
 
         // Enumerate through the files in the directory and add them to the database.
@@ -263,6 +299,9 @@ internal class Database
         return database;
     }
 
+    /// <summary>
+    /// GC Method.
+    /// </summary>
     public void Dispose()
     {
         _connection.Close();
@@ -290,12 +329,12 @@ internal class Database
         command.Parameters.AddWithValue("@path", file.FullName);
 
         // Execute the command and return the id.
-        int tagId = (int)command.ExecuteScalar();
+        long tagId = (long)command.ExecuteScalar();
 
-        if (!tagsFromFileName) return GetFile(tagId);
+        if (!tagsFromFileName) return GetFile(tagId)!;
 
         // Get any existing tags for the file.
-        string tagGroup = file.FullName.Split(".")[0]; // The tags are stored in the file name before the first period.
+        string tagGroup = file.FullName.Split(".")[0];  // The tags are stored in the file name before the first period.
 
         // Split the tags into an array at &
         string[] tags = tagGroup.Split(delimiter);
@@ -310,7 +349,7 @@ internal class Database
             AddTagToFile(tagId, dbTag.Id);
         }
 
-        return GetFile(tagId);
+        return GetFile(tagId)!;
     }
 
     /// <summary>
@@ -324,7 +363,12 @@ internal class Database
         return AddFile(new FileInfo(path), tagsFromFileName, delimiter);
     }
 
-    public DbFile GetFile(int id)
+    /// <summary>
+    ///     Gets a file from the database.
+    /// </summary>
+    /// <param name="id">File ID</param>
+    /// <returns>Matching file, null if not found.</returns>
+    public DbFile? GetFile(long id)
     {
         // Create a new command.
         SQLiteCommand command = new("SELECT * FROM files WHERE id = @id;", _connection);
@@ -335,16 +379,23 @@ internal class Database
         // Execute the command and get the reader.
         SQLiteDataReader reader = command.ExecuteReader();
 
+        if (!reader.HasRows)
+        {
+            reader.Close();
+            return null;
+        }
+
         // Read the data.
         reader.Read();
-        int fileId = reader.GetInt32(0);
-        DateTime added = reader.GetDateTime(2);
-        string filePath = reader.GetString(1);
+        long fileId = reader.GetInt64(0);
+        DateTime added = reader.GetDateTime(1);
+        string filePath = reader.GetString(2);
         reader.Close();
 
         // Create a new file object and return it
-        return new DbFile(fileId, added, filePath, GetTagsForFile(fileId));
+        return new DbFile(fileId, added, filePath, GetTagsForFile(fileId)!);
     }
+
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Tag Methods
@@ -358,12 +409,12 @@ internal class Database
     public DbTag AddTag(string tag, string colour = "")
     {
         // Create a query.
-        SQLiteCommand command = new("INSERT INTO tags (tag, colour) VALUES (@tag, @colour) RETURNING id;", _connection);
+        SQLiteCommand command = new("INSERT INTO tags (name, colour) VALUES (@tag, @colour) RETURNING id;", _connection);
         command.Parameters.AddWithValue("@tag", tag);
         command.Parameters.AddWithValue("@colour", colour);
 
         // Execute the command and return the id.
-        return GetTag((int)command.ExecuteScalar())!;
+        return GetTag((long)command.ExecuteScalar())!;
     }
 
     /// <summary>
@@ -372,7 +423,7 @@ internal class Database
     /// <param name="id">The id of the tag to edit.</param>
     /// <param name="tag">The new tag name.</param>
     /// <param name="colour">The new tag colour</param>
-    public void EditTag(int id, string? tag = null, string? colour = null)
+    public void EditTag(long id, string? tag = null, string? colour = null)
     {
         // First get the tag
         DbTag dbTag = GetTag(id) ?? throw new MissingTagException("The tag does not exist.", id);
@@ -387,7 +438,7 @@ internal class Database
         command.ExecuteNonQuery();
     }
 
-    public DbTag? GetTag(int id)
+    public DbTag? GetTag(long id)
     {
         // Create the query.
         SQLiteCommand command = new("SELECT * FROM tags WHERE id = @id;", _connection);
@@ -397,8 +448,14 @@ internal class Database
         SQLiteDataReader reader = command.ExecuteReader();
         reader.Read();
 
+        if (!reader.HasRows)
+        {
+            reader.Close();
+            return null;
+        }
+
         // Create a new tag object.
-        DbTag tag = new(reader.GetInt32(0), reader.GetDateTime(1), reader.GetString(2), reader.GetString(3));
+        DbTag tag = new(reader);
 
         // Close the reader and return the tag.
         reader.Close();
@@ -408,7 +465,7 @@ internal class Database
     public DbTag? GetTag(string tagName)
     {
         // Create query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE tag = @tag;", _connection);
+        SQLiteCommand command = new("SELECT * FROM tags WHERE name = @tag;", _connection);
         command.Parameters.AddWithValue("@tag", tagName);
 
         // Get the data 
@@ -422,7 +479,7 @@ internal class Database
         }
 
         // Create a new tag object.
-        DbTag tag = new(reader.GetInt32(0), reader.GetDateTime(1), reader.GetString(2), reader.GetString(3));
+        DbTag tag = new(reader);
 
         // Close the reader and return the tag.
         reader.Close();
@@ -437,13 +494,13 @@ internal class Database
     public List<DbTag?> GetSimilarTags(string tag)
     {
         // Create query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE tag LIKE %@tag%;", _connection);
+        SQLiteCommand command = new("SELECT * FROM tags WHERE name LIKE %@tag%;", _connection);
         command.Parameters.AddWithValue("@tag", tag);
 
         // Get the tags.
         SQLiteDataReader reader = command.ExecuteReader();
         List<DbTag?> tags = [];
-        while (reader.Read()) tags.Add(new DbTag(reader.GetInt32(0), reader.GetDateTime(1), reader.GetString(2), reader.GetString(3)));
+        while (reader.Read()) tags.Add(new DbTag(reader));
 
         reader.Close();
         return tags;
@@ -453,7 +510,7 @@ internal class Database
      * File Tag Methods
      */
 
-    public void AddTagToFile(int fileId, int tagId)
+    public void AddTagToFile(long fileId, long tagId)
     {
         // Create a new command.
         SQLiteCommand command = new("INSERT INTO file_tags (file_id, tag_id) VALUES (@fileId, @tagId);", _connection);
@@ -466,7 +523,7 @@ internal class Database
         command.ExecuteNonQuery();
     }
 
-    public void RemoveTagFromFile(int fileId, int tagId)
+    public void RemoveTagFromFile(long fileId, long tagId)
     {
         // Create a new command.
         SQLiteCommand command = new("DELETE FROM file_tags WHERE file_id = @fileId AND tag_id = @tagId;", _connection);
@@ -479,7 +536,7 @@ internal class Database
         command.ExecuteNonQuery();
     }
 
-    public List<DbTag?> GetTagsForFile(int fileId)
+    public List<DbTag?> GetTagsForFile(long fileId)
     {
         // Create a new command.
         SQLiteCommand command = new("SELECT tag_id FROM file_tags WHERE file_id = @fileId;", _connection);
@@ -494,7 +551,7 @@ internal class Database
         List<DbTag?> tags = [];
 
         // Read the reader.
-        while (reader.Read()) tags.Add(GetTag(reader.GetInt32(0))!);
+        while (reader.Read()) tags.Add(GetTag(reader.GetInt64(0))!);
 
         // Close the reader and return the tags.
         reader.Close();
@@ -506,7 +563,7 @@ internal class Database
     /// </summary>
     /// <param name="tagId">The id of the tag in which to get files for.</param>
     /// <returns></returns>
-    public List<DbFile?> GetFilesWithTag(int tagId)
+    public List<DbFile?> GetFilesWithTag(long tagId)
     {
         // Create a new command.
         SQLiteCommand command = new("SELECT file_id FROM file_tags WHERE tag_id = @tagId;", _connection);
@@ -521,7 +578,7 @@ internal class Database
         List<DbFile?> files = [];
 
         // Read the reader.
-        while (reader.Read()) files.Add(GetFile(reader.GetInt32(0)));
+        while (reader.Read()) files.Add(GetFile(reader.GetInt64(0)));
 
         // Close the reader and return the files.
         reader.Close();
@@ -532,31 +589,118 @@ internal class Database
 /// <summary>
 ///     Represents a tag in the database.
 /// </summary>
-/// <param name="id">Id of the tag.</param>
-/// <param name="name">Name of the tag.</param>
-/// <param name="colour">Colour of the tag.</param>
-public class DbTag(int id, DateTime created, string name, string colour)
+public class DbTag
 {
-    public int Id { get; } = id;
-    public DateTime Created { get; } = created;
-    public string Name { get; } = name;
-    public string Colour { get; } = colour;
+    /// <summary>
+    /// Tag Id.
+    /// </summary>
+    public long Id { get; }
+
+    /// <summary>
+    /// Tag added to db time.
+    /// </summary>
+    public DateTime Created { get; }
+
+    /// <summary>
+    /// Tag name.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// Tag colour.
+    /// </summary>
+    public string? Colour  { get; }
+
+    /// <summary>
+    ///     Initialises a new tag object.
+    /// </summary>
+    /// <param name="id">Id of the tag.</param>
+    /// <param name="created">Tag added to db time.</param>
+    /// <param name="name">Name of the tag.</param>
+    /// <param name="colour">Colour of the tag.</param>
+    public DbTag(long id, DateTime created, string name, string colour)
+    {
+        Id = id;
+        Created = created;
+        Name = name;
+        Colour = colour;
+    }
+
+    /// <summary>
+    ///     Initialises a new tag object.
+    /// </summary>
+    /// <param name="reader">The sqlite reader to draw data from.</param>
+    public DbTag(SQLiteDataReader reader)
+    {
+        Id = reader.GetInt64(0);
+        Created = reader.GetDateTime(1);
+        Name = reader.GetString(2);
+        Colour = reader.GetString(3);
+    }
+
 }
 
 /// <summary>
 ///     Represents a file in the database.
 /// </summary>
-/// <param name="id">Id of the file.</param>
-/// <param name="path">Path to the file.</param>
-/// <param name="tags">List of tags.</param>
-public class DbFile(int id, DateTime added, string path, List<DbTag> tags)
+public class DbFile
 {
-    public int Id { get; } = id;
-    public DateTime Added { get; } = added;
-    public DateTime Created { get; } = File.GetCreationTime(path);
-    public DateTime Modified { get; } = File.GetLastWriteTime(path);
-    public string Path { get; } = path;
-    public List<DbTag> Tags { get; } = tags;
+    /// <summary>
+    /// File ID.
+    /// </summary>
+    public long Id { get; }
+
+    /// <summary>
+    /// File added to db time.
+    /// </summary>
+    public DateTime Added { get; }
+
+    /// <summary>
+    /// File creation time. (OS)
+    /// </summary>
+    public DateTime Created { get; }
+
+    /// <summary>
+    /// File modified time. (OS)
+    /// </summary>
+    public DateTime Modified { get; }
+
+    /// <summary>
+    /// File path.
+    /// </summary>
+    public string Path { get; }
+
+    /// <summary>
+    /// List of tags applied to file.
+    /// </summary>
+    public List<DbTag> Tags { get; }
+
+    /// <summary>
+    ///     Initialises a new file object.
+    /// </summary>
+    /// <param name="id">Id of the file.</param>
+    /// <param name="added">File added to db time.</param>
+    /// <param name="path">Path to file.</param>
+    /// <param name="tags">List of tags applied to file.</param>
+    public DbFile(long id, DateTime added, string path, List<DbTag> tags)
+    {
+        Id = id;
+        Added = added;
+        Created = File.GetCreationTime(path);
+        Modified = File.GetLastWriteTime(path);
+        Path = path;
+        Tags = tags;
+    }
+
+    public DbFile(SQLiteDataReader reader, List<DbTag> tags)
+    {
+        Id = reader.GetInt64(0);
+        Added = reader.GetDateTime(1);
+        Created = File.GetCreationTime(reader.GetString(2));
+        Modified = File.GetLastWriteTime(reader.GetString(2));
+        Path = reader.GetString(2);
+        Tags = tags;
+    }
 }
 
 /// <summary>
@@ -564,9 +708,9 @@ public class DbFile(int id, DateTime added, string path, List<DbTag> tags)
 /// </summary>
 /// <param name="message">Error message</param>
 /// <param name="id">The id of the tag</param>
-public class MissingTagException(string message, int id) : Exception(message)
+public class MissingTagException(string message, long id) : Exception(message)
 {
-    public int TagId { get; } = id;
+    public long TagId { get; } = id;
 }
 
 /// <summary>
@@ -574,9 +718,9 @@ public class MissingTagException(string message, int id) : Exception(message)
 /// </summary>
 /// <param name="message">Error message</param>
 /// <param name="id">The id of the file</param>
-public class MissingFileException(string message, int id) : Exception(message)
+public class MissingFileException(string message, long id) : Exception(message)
 {
-    public int FileId { get; } = id;
+    public long FileId { get; } = id;
 }
 
 /// <summary>
@@ -588,5 +732,12 @@ public class DuplicateTagsException(string message) : Exception(message);
 /// <summary>
 ///     Used when the database has not been initialised.
 /// </summary>
-/// <param name="message">Error message </param>
+/// <param name="message">Error message</param>
 public class UninitialisedDatabaseException(string message) : Exception(message);
+
+
+/// <summary>
+///     Used when the database has already been initialised.
+/// </summary>
+/// <param name="message">Error message</param>
+public class AlreadyInitialisedDatabaseException(string message) : Exception(message);

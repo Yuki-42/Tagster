@@ -44,9 +44,9 @@ internal class Program
     private int RunGui(GuiOptions opts)
     {
         // Check if the GUI executable is installed
-        if (!File.Exists("TagsterGui.exe"))
+        if (!File.Exists(@"TagsterGui.exe"))
         {
-            Console.WriteLine("TagsterGui.exe not found.");
+            Console.WriteLine(Resources.GuiExecutableNotFound);
             return 1;
         }
 
@@ -67,7 +67,7 @@ internal class Program
         {
             // Run the appropriate build command
             case "new":
-                return BuildInit();
+                return BuildNew();
             case "existing":
                 return BuildExisting();
             default:
@@ -76,21 +76,29 @@ internal class Program
         }
     }
 
-    private int BuildInit()
+    private int BuildNew()
     {
         // Return the exit code
-        Console.WriteLine("Building new management system.");
+        Console.WriteLine(Resources.BuildNewStart);
 
         // Create the management system
-        _fileManager.InitialiseDirectory();
-
+        try
+        {
+            _fileManager.InitialiseDirectory();
+        }
+        catch (AlreadyInitialisedDatabaseException error)
+        {
+            Console.WriteLine(Resources.BuildNewFailAlreadyInitialised);
+        }
         return 0;
     }
 
     private int BuildExisting()
     {
         // Return the exit code
-        Console.WriteLine("Building management system from existing sources.");
+        Console.WriteLine(Resources.BuildExistingStart);
+        
+        
         return 2;
     }
 

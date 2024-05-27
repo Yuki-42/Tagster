@@ -1,9 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <root>
     <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
         <xsd:element name="root" msdata:IsDataSet="true">
-            
+
         </xsd:element>
     </xsd:schema>
     <resheader name="resmimetype">
@@ -18,7 +18,16 @@
     <resheader name="writer">
         <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
-    <data name="DbSchema" xml:space="preserve">
-        <value />
+    <data name="BuildExistingStart" xml:space="preserve">
+        <value>Building new management system from existing sources...</value>
+    </data>
+    <data name="BuildNewStart" xml:space="preserve">
+        <value>Building new management system...</value>
+    </data>
+    <data name="GuiExecutableNotFound" xml:space="preserve">
+        <value>TagsterGui.exe not found.</value>
+    </data>
+    <data name="BuildNewFailAlreadyInitialised" xml:space="preserve">
+        <value>This directory already has a management system.</value>
     </data>
 </root>
