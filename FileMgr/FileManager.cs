@@ -138,7 +138,7 @@ public class FileManager
             // Throw an exception if the database does not exist.
             throw new UninitialisedDatabaseException("The database does not exist.");
         // The database exists, so we can connect to it.
-        _database = new Database(_filePath.FullName + "/database.db");
+        _database = new Database(_filePath.FullName + "/database.db", _config);
         _initialised = true;
     }
 
@@ -157,13 +157,26 @@ public class FileManager
         // Create a new .tagster file.
         File.WriteAllText(_filePath.FullName + "/.tagster", JsonSerializer.Serialize(_config));
 
-        _database = Database.InitialiseNew(_filePath);
+        // Get the config object to pass to the database.
+        _config = JsonSerializer.Deserialize<ApplicationConfig>(File.ReadAllText(_filePath.FullName + "/.tagster"))!;
 
-        // Now enumerate through the files in the directory and add them to the database.
-        foreach (FileInfo file in _filePath.EnumerateFiles()) _database.AddFile(file, fromExistingSources);
+        _database = Database.InitialiseNew(_filePath, _config);
+
+        // Now add all files in the directory to the database.
+        AddFromDirectory(_filePath);
 
         // Set the initialised flag to true.
         _initialised = true;
+    }
+
+    /// <summary>
+    /// Adds all files in the directory to the database. If it encounters a subdirectory, it will recursively add all files in that directory.
+    /// </summary>
+    /// <param name="directory"></param>
+    private void AddFromDirectory(DirectoryInfo directory)
+    {
+        foreach (FileInfo file in directory.EnumerateFiles()) _database.AddFile(file);
+        foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories()) AddFromDirectory(subDirectory);
     }
 
 
@@ -179,85 +192,6 @@ public class FileManager
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Database exposed methods
      */
-
-    /// <summary>
-    /// Adds a file to the database.
-    /// </summary>
-    /// <param name="file">Path to the file.</param>
-    /// <param name="tagsFromFileName">Flag to trigger tag extraction and creation from file name.</param>
-    /// <returns>The added file.</returns>
-    /// <exception cref="UninitialisedDatabaseException">Thrown when the database has not been connected.</exception>
-    public DbFile AddFile(FileInfo file, bool tagsFromFileName = false)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.AddFile(file, tagsFromFileName, _config.Delimiter);
-    }
-
-    public DbFile AddFile(string path, bool tagsFromFileName = false)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.AddFile(path, tagsFromFileName, _config.Delimiter);
-    }
-
-    public DbFile? GetFile(long id)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.GetFile(id);
-    }
-
-    public DbTag AddTag(string tag, string colour = "")
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.AddTag(tag, colour);
-    }
-
-    public DbTag GetTag(long id)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.GetTag(id)!;
-    }
-
-    public DbTag GetTag(string tagName)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.GetTag(tagName)!;
-    }
-
-    public List<DbTag?> GetSimilarTags(string tag)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.GetSimilarTags(tag);
-    }
-
-    public void EditTag(long id, string? tag = null, string? colour = null)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        _database.EditTag(id, tag, colour);
-    }
-
-    public void AddTagToFile(long fileId, long tagId)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        _database.AddTagToFile(fileId, tagId);
-    }
-
-    public void RemoveTagFromFile(long fileId, long tagId)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        _database.RemoveTagFromFile(fileId, tagId);
-    }
-
-    public List<DbTag?> GetTagsForFile(long fileId)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.GetTagsForFile(fileId);
-    }
-
-    public List<DbFile?> GetFilesWithTag(long tagId)
-    {
-        if (!_initialised) throw new UninitialisedDatabaseException("The database has not been initialised.");
-        return _database.GetFilesWithTag(tagId);
-    }
 }
 
 internal class Database
@@ -268,33 +202,38 @@ internal class Database
     private readonly SQLiteConnection _connection;
 
     /// <summary>
+    /// Database configuration.
+    /// </summary>
+    private readonly ApplicationConfig _config;
+
+    /// <summary>
     ///     Initialises a new database connection.
     /// </summary>
     /// <param name="path">The path for the database file.</param>
-    public Database(string path)
+    /// <param name="config">The configuration object.</param>
+    public Database(string path, ApplicationConfig config)
     {
         _connection = new SQLiteConnection("Data Source=" + path + ";Version=3;");
         _connection.Open();
+        _config = config;
     }
 
     /// <summary>
     ///     Initialises a new database in the specified directory.
     /// </summary>
-    /// <param name="path"></param>
-    public static Database InitialiseNew(DirectoryInfo path)
+    /// <param name="path">Path to the directory.</param>
+    /// <param name="config"></param>
+    public static Database InitialiseNew(DirectoryInfo path, ApplicationConfig config)
     {
         // First create the database file.
         SQLiteConnection.CreateFile(path.FullName + "/database.db");
 
-        Database database = new(path.FullName + "/database.db");
+        Database database = new(path.FullName + "/database.db", config);
 
         // Read in schema.sql and execute it.
         string schema = File.ReadAllText("schema.sql");
         SQLiteCommand command = new(schema, database._connection);
         command.ExecuteNonQuery();
-
-        // Enumerate through the files in the directory and add them to the database.
-        foreach (FileInfo file in path.EnumerateFiles()) database.AddFile(file);
 
         return database;
     }
@@ -316,11 +255,9 @@ internal class Database
     /// </summary>
     /// <param name="file">The file to add.</param>
     /// <param name="tagsFromFileName">Whether to extract the tags from the file name.</param>
-    /// <param name="delimiter">The tag delimiter character.</param>
-    public DbFile AddFile(FileInfo file, bool tagsFromFileName = true, string delimiter = "&")
+    public DbFile AddFile(FileInfo file, bool tagsFromFileName = true)
     {
         if (!file.Exists) throw new FileNotFoundException("The file does not exist.", file.FullName);
-
 
         // Create a new command.
         SQLiteCommand command = new("INSERT INTO files (path) VALUES (@path) RETURNING id;", _connection);
@@ -337,7 +274,7 @@ internal class Database
         string tagGroup = file.FullName.Split(".")[0];  // The tags are stored in the file name before the first period.
 
         // Split the tags into an array at &
-        string[] tags = tagGroup.Split(delimiter);
+        string[] tags = tagGroup.Split(_config.Delimiter);
 
         // Add the tags to the database.
         foreach (string tag in tags)
@@ -357,10 +294,9 @@ internal class Database
     /// </summary>
     /// <param name="path">Full path to file to add.</param>
     /// <param name="tagsFromFileName">Whether to extract the tags from the file name.</param>
-    /// <param name="delimiter">The tag delimiter character.</param>
-    public DbFile AddFile(string path, bool tagsFromFileName = true, string delimiter = "&")
+    public DbFile AddFile(string path, bool tagsFromFileName = true)
     {
-        return AddFile(new FileInfo(path), tagsFromFileName, delimiter);
+        return AddFile(new FileInfo(path), tagsFromFileName);
     }
 
     /// <summary>
@@ -692,6 +628,11 @@ public class DbFile
         Tags = tags;
     }
 
+    /// <summary>
+    /// Initialises a new file object from a reader.
+    /// </summary>
+    /// <param name="reader">The DataReader to read file data from.</param>
+    /// <param name="tags">Tags associated with this file.</param>
     public DbFile(SQLiteDataReader reader, List<DbTag> tags)
     {
         Id = reader.GetInt64(0);
@@ -710,6 +651,9 @@ public class DbFile
 /// <param name="id">The id of the tag</param>
 public class MissingTagException(string message, long id) : Exception(message)
 {
+    /// <summary>
+    /// The tag id that was not found.
+    /// </summary>
     public long TagId { get; } = id;
 }
 
@@ -720,6 +664,9 @@ public class MissingTagException(string message, long id) : Exception(message)
 /// <param name="id">The id of the file</param>
 public class MissingFileException(string message, long id) : Exception(message)
 {
+    /// <summary>
+    /// The file id that was not found.+
+    /// </summary>
     public long FileId { get; } = id;
 }
 

@@ -8,10 +8,33 @@ namespace Cli;
 internal class Program
 {
     /// <summary>
+    /// Program entry point.
+    /// </summary>
+    /// <param name="args">Command line arguments.</param>
+    /// <returns>Return code.</returns>
+    public static int Main(string[] args)
+    {
+        // Create a new instance of the program
+        Program program = new();
+
+        // Process the arguments
+        return Parser.Default.ParseArguments<GuiOptions, BuildOptions, ImportOptions>(args)
+            .MapResult(
+                (GuiOptions opts) => RunGui(opts),
+                (BuildOptions opts) => program.Build(opts),
+                (ImportOptions opts) => program.ImportFiles(opts),
+                errs => 1
+            );
+    }
+
+    /// <summary>
     ///     File manager instance.
     /// </summary>
     private readonly FileManager _fileManager;
 
+    /// <summary>
+    ///    Create a new instance of the program.
+    /// </summary>
     private Program()
     {
         // Initialize the file manager with the current directory from which the program was run
@@ -26,22 +49,13 @@ internal class Program
         }
     }
 
-    public static int Main(string[] args)
-    {
-        // Create a new instance of the program
-        Program program = new();
 
-        // Process the arguments
-        return Parser.Default.ParseArguments<GuiOptions, BuildOptions, ImportOptions>(args)
-            .MapResult(
-                (GuiOptions opts) => program.RunGui(opts),
-                (BuildOptions opts) => program.Build(opts),
-                (ImportOptions opts) => program.ImportFiles(opts),
-                errs => 1
-            );
-    }
-
-    private int RunGui(GuiOptions opts)
+    /// <summary>
+    /// Runs the gui executable.
+    /// </summary>
+    /// <param name="opts">Options to pass to the GUI.</param>
+    /// <returns>Return code of the GUI Process.</returns>
+    private static int RunGui(GuiOptions opts)
     {
         // Check if the GUI executable is installed
         if (!File.Exists(@"TagsterGui.exe"))
@@ -51,18 +65,17 @@ internal class Program
         }
 
         // Start the GUI
-        Process.Start("TagsterGui.exe");
+        Process process = Process.Start("TagsterGui.exe", opts.ToString() ?? string.Empty);
 
         // Wait for the GUI to exit
-        Process.GetCurrentProcess().WaitForExit();
+        process.WaitForExit();
 
-        return 0;
+        return process.ExitCode;
     }
 
     private int Build(BuildOptions opts)
     {
-        // List options
-        Console.WriteLine("Options: " + opts.Mode);
+        // Work out which build command to run
         switch (opts.Mode)
         {
             // Run the appropriate build command
@@ -86,22 +99,30 @@ internal class Program
         {
             _fileManager.InitialiseDirectory();
         }
-        catch (AlreadyInitialisedDatabaseException error)
+        catch (AlreadyInitialisedDatabaseException)
         {
             Console.WriteLine(Resources.BuildNewFailAlreadyInitialised);
         }
         return 0;
     }
 
+    /// <summary>
+    /// Build a management system from existing sources in the current directory.
+    /// </summary>
+    /// <returns>Return status of subsystem.</returns>
     private int BuildExisting()
     {
         // Return the exit code
         Console.WriteLine(Resources.BuildExistingStart);
-        
-        
+
         return 2;
     }
 
+    /// <summary>
+    /// Import files.
+    /// </summary>
+    /// <param name="opts"></param>
+    /// <returns></returns>
     private int ImportFiles(ImportOptions opts)
     {
         // Return the exit code
