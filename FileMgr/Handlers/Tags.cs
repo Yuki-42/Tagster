@@ -1,6 +1,7 @@
 using System.Data.SQLite;
 using FileMgr.Objects;
 // ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable UnusedMember.Global
 
 namespace FileMgr.Handlers;
 
@@ -29,10 +30,6 @@ public class Tags
         _connection = connection;
         _config = config;
     }
-
-    /*
-     * Database Operations
-     */
 
     /// <summary>
     /// Gets a tag by its ID.
@@ -92,7 +89,7 @@ public class Tags
         return tag;
     }
 
-    public List<Tag?> GetSimilar(string name)
+    public List<Tag> GetSimilar(string name)
     {
         // Create query
         SQLiteCommand command = new("SELECT * FROM tags WHERE name LIKE @tag;", _connection);
@@ -100,7 +97,7 @@ public class Tags
 
         // Get the data
         SQLiteDataReader reader = command.ExecuteReader();
-        List<Tag?> tags = [];
+        List<Tag> tags = [];
 
         while (reader.Read())
         {
@@ -149,4 +146,26 @@ public class Tags
         return Get(tag.Id)!;
     }
 
+    /// <summary>
+    /// Delete a tag from the database.
+    /// </summary>
+    /// <param name="id">Tag ID.</param>
+    public void Delete(long id)
+    {
+        // Create a query.
+        SQLiteCommand command = new("DELETE FROM tags WHERE id = @id;", _connection);
+        command.Parameters.AddWithValue("@id", id);
+
+        // Execute the command.
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// Delete a tag from the database.
+    /// </summary>
+    /// <param name="tag">Tag Object.</param>
+    public void Delete(Tag tag)
+    {
+        Delete(tag.Id);
+    }
 }
