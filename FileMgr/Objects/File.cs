@@ -5,7 +5,7 @@ namespace FileMgr.Objects;
 /// <summary>
 ///     Represents a file in the database.
 /// </summary>
-public class DbFile
+public class File
 {
     /// <summary>
     /// File ID.
@@ -44,12 +44,12 @@ public class DbFile
     /// <param name="added">File added to db time.</param>
     /// <param name="path">Path to file.</param>
     /// <param name="tags">List of tags applied to file.</param>
-    public DbFile(long id, DateTime added, string path, List<Tag> tags)
+    public File(long id, DateTime added, string path, List<Tag> tags)
     {
         Id = id;
         Added = added;
-        Created = File.GetCreationTime(path);
-        Modified = File.GetLastWriteTime(path);
+        Created = System.IO.File.GetCreationTime(path);
+        Modified = System.IO.File.GetLastWriteTime(path);
         Path = path;
         Tags = tags;
     }
@@ -59,12 +59,12 @@ public class DbFile
     /// </summary>
     /// <param name="reader">The DataReader to read file data from.</param>
     /// <param name="tags">Tags associated with this file.</param>
-    public DbFile(SQLiteDataReader reader, List<Tag> tags)
+    public File(SQLiteDataReader reader, List<Tag> tags)
     {
         Id = reader.GetInt64(0);
         Added = reader.GetDateTime(1);
-        Created = File.GetCreationTime(reader.GetString(2));
-        Modified = File.GetLastWriteTime(reader.GetString(2));
+        Created = System.IO.File.GetCreationTime(reader.GetString(2));
+        Modified = System.IO.File.GetLastWriteTime(reader.GetString(2));
         Path = reader.GetString(2);
         Tags = tags;
     }
