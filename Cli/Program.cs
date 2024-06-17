@@ -2,7 +2,6 @@
 using CommandLine;
 using CommandLine.Text;
 using FileMgr;
-using FileMgr.Exceptions;
 
 namespace Cli;
 
@@ -22,34 +21,12 @@ internal class Program
         return Parser.Default.ParseArguments<GuiOptions, BuildOptions, ImportOptions>(args)
             .MapResult(
                 (GuiOptions opts) => RunGui(opts),
-                (BuildOptions opts) => program.Build(opts),
+                (BuildOptions opts) => program.BuildNew(opts),
+                (RebuildOptions opts) => program.BuildExisting(opts),
                 (ImportOptions opts) => program.ImportFiles(opts),
                 errs => 1
             );
     }
-
-    /// <summary>
-    ///     File manager instance.
-    /// </summary>
-    private readonly FileManager _fileManager;
-
-    /// <summary>
-    ///    Create a new instance of the program.
-    /// </summary>
-    private Program()
-    {
-        // Initialize the file manager with the current directory from which the program was run
-        try
-        {
-            _fileManager = new FileManager(Directory.GetCurrentDirectory());
-        }
-        catch (MissingFileException e)
-        {
-            Console.WriteLine(e.Message);
-            Environment.Exit(1);
-        }
-    }
-
 
     /// <summary>
     /// Runs the gui executable.
@@ -74,33 +51,11 @@ internal class Program
         return process.ExitCode;
     }
 
-    private int Build(BuildOptions opts)
-    {
-        // Work out which build command to run
-        switch (opts.Mode)
-        {
-            // Run the appropriate build command
-            case "new":
-                return BuildNew();
-            case "existing":
-                return BuildExisting();
-            default:
-                Console.WriteLine("Invalid build command.");
-                return 1;
-        }
-    }
-
-    private int BuildNew()
+    private int BuildNew(BuildOptions opts)
     {
         // Create the management system
-        try
-        {
-            _fileManager.InitialiseDirectory();
-        }
-        catch (AlreadyInitialisedDatabaseException)
-        {
-            Console.WriteLine(Resources.BuildNewFailAlreadyInitialised);
-        }
+        FileManager fileManager = new(Environment.CurrentDirectory, 2);
+        
         return 0;
     }
 
@@ -108,10 +63,10 @@ internal class Program
     /// Build a management system from existing sources in the current directory.
     /// </summary>
     /// <returns>Return status of subsystem.</returns>
-    private int BuildExisting()
+    private int BuildExisting(RebuildOptions ops)
     {
         // Create the management system
-        _fileManager.InitialiseDirectory(true);
+        FileManager fileManager = new(Environment.CurrentDirectory, 3);
 
         return 0;
     }
@@ -138,19 +93,13 @@ internal class Program
     // ReSharper disable once ClassNeverInstantiated.Local
     private class BuildOptions
     {
-        [Usage(ApplicationAlias = "tagster")]
-        // ReSharper disable once UnusedMember.Global
-        public static IEnumerable<Example> Examples
-        {
-            get
-            {
-                yield return new Example("Initialize a new management system", new BuildOptions { Mode = "new" });
-                yield return new Example("Initialize a new management system from existing sources in this directory", new BuildOptions { Mode = "existing" });
-            }
-        }
-
-        [Option('m', "mode", HelpText = "The build mode", Required = true)]
-        public required string Mode { get; set; }
+        
+    }
+    
+    [Verb("rebuild", false, [], HelpText = "Rebuild a management system in the current directory")]
+    private class RebuildOptions
+    {
+        
     }
 
 

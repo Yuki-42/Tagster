@@ -1,5 +1,6 @@
 using System.Data.SQLite;
 using FileMgr.Handlers;
+
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
@@ -34,6 +35,11 @@ public class Relations
         _config = config;
     }
 
+    /*************************************************************************************************************************************************************************************
+     * Tag Returns
+     *************************************************************************************************************************************************************************************/
+
+    
     /// <summary>
     /// Gets the tags on a file.
     /// </summary>
@@ -70,9 +76,41 @@ public class Relations
     /// </summary>
     /// <param name="file">File object to get tags for.</param>
     /// <returns>List of tags.</returns>
-    public List<Tag> GetTags(Objects.File file)
+    public List<Tag> GetTags(File file)
     {
         return GetTags(file.Id);
     }
+    
+    /*************************************************************************************************************************************************************************************
+     * File Returns
+     *************************************************************************************************************************************************************************************/
+    
+    public List<File> GetFiles(Tag tag)
+    {
+        // Create a new command.
+        SQLiteCommand command = new("SELECT file_id FROM file_tags WHERE tag_id = @tag_id;", _connection);
 
+        // Add the parameter.
+        command.Parameters.AddWithValue("@tag_id", tag.Id);
+
+        // Execute the command and get the reader.
+        SQLiteDataReader reader = command.ExecuteReader();
+
+        // Create a list of files.
+        List<File> files = [];
+
+        // Read the data.
+        while (reader.Read())
+        {
+            long fileId = reader.GetInt64(0);
+            files.Add(new Files(_connection, _config).Get(fileId)!);
+        }
+
+        // Close the reader and return the files.
+        reader.Close();
+        return files;
+    }
+    
+    public 
+    
 }
