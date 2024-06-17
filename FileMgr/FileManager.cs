@@ -7,11 +7,13 @@ using System.Security.Principal;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.DependencyInjection;
 
 // Local libraries
 using FileMgr.Handlers;
 using FileMgr.Objects;
 using FileMgr.Exceptions;
+using File = FileMgr.Objects.File;
 
 namespace FileMgr;
 
@@ -27,6 +29,30 @@ public class ApplicationConfig
 }
 
 /// <summary>
+/// Stores runtime configuration for the application.
+/// </summary>
+/// <param name="rootPath">Root path of the application.</param>
+/// <param name="configFile">Location of config file.</param>
+/// <param name="databaseFile">Location of database file.</param>
+public class RuntimeConfiguration(DirectoryInfo rootPath, FileInfo configFile, FileInfo databaseFile)
+{
+    /// <summary>
+    /// Effectively the CWD for the application.
+    /// </summary>
+    public DirectoryInfo RootPath { get; private set; } = rootPath;
+
+    /// <summary>
+    /// Location of the config file.
+    /// </summary>
+    public FileInfo ConfigFile { get; private set; } = configFile;
+
+    /// <summary>
+    /// Location of the database file.
+    /// </summary>
+    public FileInfo DatabaseFile { get; private set; } = databaseFile;
+}
+
+/// <summary>
 ///     Public exposed class for file management using tags and file paths.
 /// </summary>
 [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
@@ -35,21 +61,6 @@ public class FileManager
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Class Variables
      */
-
-    /// <summary>
-    ///     The most important class variable. This is the path to the data directory and the parent path for all operations.
-    /// </summary>
-    private readonly DirectoryInfo _filePath;
-
-    /// <summary>
-    /// Stores the path to the configuration file.
-    /// </summary>
-    private readonly FileInfo _configFile;
-
-    /// <summary>
-    ///   Stores the path to the database file.
-    /// </summary>
-    private readonly FileInfo _dbFile;
     
     /// <summary>
     ///     Stores persistent application configuration.
@@ -57,20 +68,24 @@ public class FileManager
     private ApplicationConfig _config;
 
     /// <summary>
-    ///     The database connection for the program.
+    ///     Runtime configuration.
     /// </summary>
-    private Database _database;
-
-    /// <summary>
-    ///     Stores whether the file manager has been initialised.
-    /// </summary>
-    private bool _initialised;
+    private RuntimeConfiguration _runtimeConfiguration;
 
     /// <summary>
     /// Tags handler.
     /// </summary>
     public Tags Tags { get; private set; }
 
+    /// <summary>
+    /// Files handler.
+    /// </summary>
+    public Files Files { get; private set; }
+
+    /// <summary>
+    /// Relations handler.
+    /// </summary>
+    public Relations Relations { get; private set; }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Miscellaneous Methods
@@ -80,21 +95,76 @@ public class FileManager
     ///     Initializes a new instance of the <see cref="FileManager" /> class.
     /// </summary>
     /// <param name="filePath">The path to the data directory.</param>
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    public FileManager(DirectoryInfo filePath)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+    /// <param name="actionCode">
+    /// The action code to perform.
+    ///
+    /// 1: Connect to an existing db.
+    /// 2: Initialise a new db from scratch.
+    /// 3: Initialise a new db from existing sources. (Rebuild)
+    /// </param>
+    public FileManager(
+        DirectoryInfo filePath,
+        int actionCode
+        )
     {
-        // Set the file path
-        _filePath = filePath;
-        _configFile = new FileInfo(filePath.FullName + "/.tagster");
+        // Create service provider
+        IServiceCollection services = new ServiceCollection();
+
+        // Do runtime configuration
+        _runtimeConfiguration = new RuntimeConfiguration(
+            filePath,
+            new FileInfo(filePath.FullName + "/.tagster"),
+            new FileInfo(filePath.FullName + "/database.db")
+        );
         
         // Do the registry checks
         DoRegistryChecks();
+
+        switch (actionCode)
+        {
+            case 1:
+                Connect();
+                break;
+            case 2:
+                InitialiseNew();
+                break;
+            case 3:
+                InitialiseExisting();
+                break;
+            default:
+                throw new InvalidOperationException("Invalid action code.");
+        }
+
+        // Create an sqlite connection
+        SQLiteConnection connection = new("Data Source=" + _runtimeConfiguration.RootPath.FullName + ";Version=3;");
+        connection.Open();
+
+        // Create the handlers
+        Tags = new Tags(connection, _config);
+        Files = new Files(connection, _config);
+        Relations = new Relations(connection, _config);
+
+        // Close the connection
+        connection.Close();
+        connection.Dispose();
+
+        // Register services
+        services.AddSingleton(Tags);
+        services.AddSingleton(Files);
+        services.AddSingleton(Relations);
+
+        services.AddSingleton(_config);
+        services.AddSingleton(_runtimeConfiguration);
     }
 
     // Overload for string path
-    /// <inheritdoc />
-    public FileManager(string filePath) : this(new DirectoryInfo(filePath)) { }
+    /// <inheritdoc cref="FileManager"/>
+    public FileManager(
+        string filePath,
+        int actionCode
+        ) : this(new DirectoryInfo(filePath), actionCode)
+    {
+    }
 
     /// <summary>
     /// Checks if the filesystem has been initialised for a tagster management system.
@@ -121,12 +191,28 @@ public class FileManager
         {
             JToken.Parse(_configFile.OpenText().ReadToEnd());
         }
-        catch (Exception)
+        catch (JsonReaderException)
         {
             return 41;
         }
 
         return 0;
+    }
+
+
+    /// <summary>
+    /// Performs runtime checks to ensure the program can run. Uses CheckFilesystemInitialised.
+    /// </summary>
+    /// <param name="skips">Codes to skip the error raising for.</param>
+    private void DoRuntimeExceptions(List<int>? skips = null)
+    {
+        // Check the filesystem initialisation status.
+        int status = CheckFilesystemInitialised();
+
+        if (status == 0) return;
+        if (skips != null && skips.Contains(status)) return;
+
+        // Raise an exception based on the status.
     }
 
     /// <summary>
@@ -168,7 +254,7 @@ public class FileManager
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine(e.Message);  // TODO: Remove this once the program is stable.
                 Environment.Exit(1);
             }
         }
@@ -181,25 +267,13 @@ public class FileManager
     /// <summary>
     /// Tries to connect to an existing DB in the current working directory.
     /// </summary>
-    /// <exception cref="MissingFileException">Thrown when a .tagster file cannot be found in the current directory.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the JSON format in a .tagster file is non-compliant.</exception>
-    /// <exception cref="UninitialisedDatabaseException">Thrown when there is no database in the current directory.</exception>
-    public void Connect()
+    private void Connect()
     {
-        // Check if a .tagster file exists in the directory.
-        if (!_configFile.Exists) throw new MissingFileException("The .tagster file does not exist.", 0);
+        // Do the runtime exceptions before connecting.
+        DoRuntimeExceptions();
 
-        // Read the contents as a json object.
-        string json = _configFile.OpenText().ReadToEnd();
-        _config = JsonConvert.DeserializeObject<ApplicationConfig>(json) ?? throw new InvalidOperationException("Json error in .tagster file.");
-
-        // Check if the database exists.
-        if (!File.Exists(_filePath.FullName + "/database.db"))
-            // Throw an exception if the database does not exist.
-            throw new UninitialisedDatabaseException("The database does not exist.");
-        // The database exists, so we can connect to it.
-        _database = new Database(_filePath.FullName + "/database.db", _config);
-        _initialised = true;
+        // We know that everything is present and correct, so we can read in the config
+        _config = JsonConvert.DeserializeObject<ApplicationConfig>(_configFile.OpenText().ReadToEnd())!;
     }
 
     /// <summary>
@@ -207,26 +281,31 @@ public class FileManager
     /// </summary>
     public void InitialiseDirectory(bool fromExistingSources = false)
     {
-        // Check if the directory has already been initialised by checking for the presence of a .tagster file.
-        if (_configFile.Exists)
-        {
-            // The directory has already been initialised, so connect to the database.
-            throw new AlreadyInitialisedDatabaseException("The directory has already been initialised.");
-        }
+        // Do the runtime exceptions before connecting.
+        DoRuntimeExceptions([]);
 
         // Create a new .tagster file.
-        File.WriteAllText(_configFile.FullName, JsonConvert.SerializeObject(_config));
+        System.IO.File.WriteAllText(_configFile.FullName, JsonConvert.SerializeObject(_config));
 
         // Get the config object to pass to the database.
         _config = JsonConvert.DeserializeObject<ApplicationConfig>(_configFile.OpenText().ReadToEnd())!;
 
-        _database = Database.InitialiseNew(_filePath, _config);
-
         // Now add all files in the directory to the database.
         AddFromDirectory(_filePath);
 
-        // Set the initialised flag to true.
-        _initialised = true;
+    }
+
+    /// <summary>
+    /// Tiny helper method to initialise a new directory.
+    /// </summary>
+    public void InitialiseNew()
+    {
+        InitialiseDirectory(true);
+    }
+
+    public void InitialiseExisting()
+    {
+        InitialiseDirectory(false);
     }
 
     /// <summary>
@@ -238,28 +317,11 @@ public class FileManager
         foreach (FileInfo file in directory.EnumerateFiles()) _database.AddFile(file);
         foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories()) AddFromDirectory(subDirectory);
     }
-
-
-    /// <summary>
-    /// GC Method.
-    /// </summary>
-    public void Dispose()
-    {
-        _config = null!;
-        if (_initialised) _database.Dispose();
-    }
-
-    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-     * Database exposed methods
-     */
 }
 
 internal class Database
 {
-    /// <summary>
-    /// Low-level database connection.
-    /// </summary>
-    private readonly SQLiteConnection _connection;
+
 
     /// <summary>
     /// Database configuration.
@@ -315,7 +377,7 @@ internal class Database
     /// </summary>
     /// <param name="file">The file to add.</param>
     /// <param name="tagsFromFileName">Whether to extract the tags from the file name.</param>
-    public DbFile AddFile(FileInfo file, bool tagsFromFileName = true)
+    public File AddFile(FileInfo file, bool tagsFromFileName = true)
     {
         if (!file.Exists) throw new FileNotFoundException("The file does not exist.", file.FullName);
 
@@ -359,38 +421,6 @@ internal class Database
         return AddFile(new FileInfo(path), tagsFromFileName);
     }
 
-    /// <summary>
-    ///     Gets a file from the database.
-    /// </summary>
-    /// <param name="id">File ID</param>
-    /// <returns>Matching file, null if not found.</returns>
-    public DbFile? GetFile(long id)
-    {
-        // Create a new command.
-        SQLiteCommand command = new("SELECT * FROM files WHERE id = @id;", _connection);
-
-        // Add the parameter.
-        command.Parameters.AddWithValue("@id", id);
-
-        // Execute the command and get the reader.
-        SQLiteDataReader reader = command.ExecuteReader();
-
-        if (!reader.HasRows)
-        {
-            reader.Close();
-            return null;
-        }
-
-        // Read the data.
-        reader.Read();
-        long fileId = reader.GetInt64(0);
-        DateTime added = reader.GetDateTime(1);
-        string filePath = reader.GetString(2);
-        reader.Close();
-
-        // Create a new file object and return it
-        return new DbFile(fileId, added, filePath, GetTagsForFile(fileId)!);
-    }
 
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -467,7 +497,7 @@ internal class Database
         SQLiteDataReader reader = command.ExecuteReader();
 
         // Create a new list of files.
-        List<DbFile?> files = [];
+        List<File?> files = [];
 
         // Read the reader.
         while (reader.Read()) files.Add(GetFile(reader.GetInt64(0)));
