@@ -10,22 +10,22 @@ public class Tag
     /// <summary>
     /// Tag Id.
     /// </summary>
-    public long Id { get; }
+    public readonly long Id;
 
     /// <summary>
     /// Tag added to db time.
     /// </summary>
-    public DateTime Created { get; }
+    public readonly DateTime Created;
 
     /// <summary>
     /// Tag name.
     /// </summary>
-    public string Name { get; }
+    public readonly string Name;
 
     /// <summary>
     /// Tag colour.
     /// </summary>
-    public string? Colour  { get; }
+    public readonly string? Colour;
 
     /// <summary>
     ///     Initialises a new tag object.
@@ -52,5 +52,14 @@ public class Tag
         Created = reader.GetDateTime(1);
         Name = reader.GetString(2);
         Colour = reader.GetString(3);
+    }
+
+    /// <summary>
+    ///    Makes a tag editable.
+    /// </summary>
+    /// <returns>The editable tag object.</returns>
+    public ETag Edit()
+    {
+        return new ETag(this);
     }
 }

@@ -15,8 +15,14 @@ using FileMgr.Exceptions;
 
 namespace FileMgr;
 
-internal class ApplicationConfig
+/// <summary>
+/// Model for the application configuration.
+/// </summary>
+public class ApplicationConfig
 {
+    /// <summary>
+    /// Tag delimiter in file names.
+    /// </summary>
     public required string Delimiter { get; set; }
 }
 
@@ -59,6 +65,11 @@ public class FileManager
     ///     Stores whether the file manager has been initialised.
     /// </summary>
     private bool _initialised;
+
+    /// <summary>
+    /// Tags handler.
+    /// </summary>
+    public Tags Tags { get; private set; }
 
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -329,7 +340,7 @@ internal class Database
         foreach (string sTag in tags)
         {
             // Add the tag if it does not exist.
-            Tag? tag = GetTag(sTag) ?? new Tag(AddTag(sTag).Id, DateTime.Now, sTag, "");
+            Tag? tag = this.Tags.Get(sTag) ?? new Tag(this.Tags.New(sTag).Id, DateTime.Now, sTag, "");
 
             // Add the tag to the file.
             AddTagToFile(tagId, tag.Id);
@@ -386,110 +397,6 @@ internal class Database
      * Tag Methods
      */
 
-    /// <summary>
-    ///     Adds a tag to the database.
-    /// </summary>
-    /// <param name="tag">The tag name to add.</param>
-    /// <param name="colour"></param>
-    public Tag AddTag(string tag, string colour = "")
-    {
-        // Create a query.
-        SQLiteCommand command = new("INSERT INTO tags (name, colour) VALUES (@tag, @colour) RETURNING id;", _connection);
-        command.Parameters.AddWithValue("@tag", tag);
-        command.Parameters.AddWithValue("@colour", colour);
-
-        // Execute the command and return the id.
-        return GetTag((long)command.ExecuteScalar())!;
-    }
-
-    /// <summary>
-    ///     Edits a tag in the database.
-    /// </summary>
-    /// <param name="id">The id of the tag to edit.</param>
-    /// <param name="tag">The new tag name.</param>
-    /// <param name="colour">The new tag colour</param>
-    public void EditTag(long id, string? tag = null, string? colour = null)
-    {
-        // First get the tag
-        Tag tagOb = GetTag(id) ?? throw new MissingTagException("The tag does not exist.", id);
-
-        // Create a new query.
-        SQLiteCommand command = new("UPDATE tags SET name = @tag, colour = @colour WHERE id = @id;", _connection);
-        command.Parameters.AddWithValue("@tag", tag ?? tagOb.Name);
-        command.Parameters.AddWithValue("@colour", colour ?? tagOb.Colour);
-        command.Parameters.AddWithValue("@id", id);
-
-        // Execute the command.
-        command.ExecuteNonQuery();
-    }
-
-    public Tag? GetTag(long id)
-    {
-        // Create the query.
-        SQLiteCommand command = new("SELECT * FROM tags WHERE id = @id;", _connection);
-        command.Parameters.AddWithValue("@id", id);
-
-        // Get the data.
-        SQLiteDataReader reader = command.ExecuteReader();
-        reader.Read();
-
-        if (!reader.HasRows)
-        {
-            reader.Close();
-            return null;
-        }
-
-        // Create a new tag object.
-        Tag tag = new(reader);
-
-        // Close the reader and return the tag.
-        reader.Close();
-        return tag;
-    }
-
-    public Tag? GetTag(string tagName)
-    {
-        // Create query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE name = @tag;", _connection);
-        command.Parameters.AddWithValue("@tag", tagName);
-
-        // Get the data 
-        SQLiteDataReader reader = command.ExecuteReader();
-        reader.Read();
-
-        if (!reader.HasRows)
-        {
-            reader.Close();
-            return null;
-        }
-
-        // Create a new tag object.
-        Tag tag = new(reader);
-
-        // Close the reader and return the tag.
-        reader.Close();
-        return tag;
-    }
-
-    /// <summary>
-    ///     Gets all tags with similar names.
-    /// </summary>
-    /// <param name="tag">The tag name to get similar tags to.</param>
-    /// <returns>List of similar tags.</returns>
-    public List<Tag?> GetSimilarTags(string tag)
-    {
-        // Create query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE name LIKE '%@tag%';", _connection);  // This probably wont work
-        command.Parameters.AddWithValue("@tag", tag);
-
-        // Get the tags.
-        SQLiteDataReader reader = command.ExecuteReader();
-        List<Tag?> tags = [];
-        while (reader.Read()) tags.Add(new Tag(reader));
-
-        reader.Close();
-        return tags;
-    }
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * File Tag Methods
