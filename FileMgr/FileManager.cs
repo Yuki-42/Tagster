@@ -1,10 +1,17 @@
-﻿using System.Data.SQLite;
+﻿// Third-party libraries: Newtonsoft.Json, System.Data.SQLite
+using System.Data.SQLite;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using System.Text.Json;
 using Microsoft.Win32;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+// Local libraries
+using FileMgr.Handlers;
+using FileMgr.Objects;
+using FileMgr.Exceptions;
 
 namespace FileMgr;
 
@@ -28,6 +35,16 @@ public class FileManager
     /// </summary>
     private readonly DirectoryInfo _filePath;
 
+    /// <summary>
+    /// Stores the path to the configuration file.
+    /// </summary>
+    private readonly FileInfo _configFile;
+
+    /// <summary>
+    ///   Stores the path to the database file.
+    /// </summary>
+    private readonly FileInfo _dbFile;
+    
     /// <summary>
     ///     Stores persistent application configuration.
     /// </summary>
@@ -58,15 +75,47 @@ public class FileManager
     {
         // Set the file path
         _filePath = filePath;
-
+        _configFile = new FileInfo(filePath.FullName + "/.tagster");
+        
         // Do the registry checks
         DoRegistryChecks();
     }
 
     // Overload for string path
     /// <inheritdoc />
-    public FileManager(string filePath) : this(new DirectoryInfo(filePath))
+    public FileManager(string filePath) : this(new DirectoryInfo(filePath)) { }
+
+    /// <summary>
+    /// Checks if the filesystem has been initialised for a tagster management system.
+    /// </summary>
+    /// <returns>
+    /// The initialisation status.
+    ///
+    /// 0: Initialised
+    /// 10: Uninitialised
+    /// 2x: Name schema present but no db
+    /// 3x: Bad DB
+    /// 4x: Bad config
+    ///
+    /// x0: Missing object. (e.g. db, config)
+    /// x1: Misconfigured or corrupt object. Means a failure in the lower-level libraries used in the project.
+    /// </returns>
+    public int CheckFilesystemInitialised()
     {
+        // Work backwards through errors to find the first one.
+        if (!_configFile.Exists) return 40;
+
+        // Attempt to read the config file.
+        try
+        {
+            JToken.Parse(_configFile.OpenText().ReadToEnd());
+        }
+        catch (Exception)
+        {
+            return 41;
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -127,11 +176,11 @@ public class FileManager
     public void Connect()
     {
         // Check if a .tagster file exists in the directory.
-        if (!File.Exists(_filePath.FullName + "/.tagster")) throw new MissingFileException("The .tagster file does not exist.", 0);
+        if (!_configFile.Exists) throw new MissingFileException("The .tagster file does not exist.", 0);
 
         // Read the contents as a json object.
-        string json = File.ReadAllText(".tagster");
-        _config = JsonSerializer.Deserialize<ApplicationConfig>(json) ?? throw new InvalidOperationException("Json error in .tagster file.");
+        string json = _configFile.OpenText().ReadToEnd();
+        _config = JsonConvert.DeserializeObject<ApplicationConfig>(json) ?? throw new InvalidOperationException("Json error in .tagster file.");
 
         // Check if the database exists.
         if (!File.Exists(_filePath.FullName + "/database.db"))
@@ -148,17 +197,17 @@ public class FileManager
     public void InitialiseDirectory(bool fromExistingSources = false)
     {
         // Check if the directory has already been initialised by checking for the presence of a .tagster file.
-        if (File.Exists(_filePath.FullName + "/.tagster"))
+        if (_configFile.Exists)
         {
             // The directory has already been initialised, so connect to the database.
             throw new AlreadyInitialisedDatabaseException("The directory has already been initialised.");
         }
 
         // Create a new .tagster file.
-        File.WriteAllText(_filePath.FullName + "/.tagster", JsonSerializer.Serialize(_config));
+        File.WriteAllText(_configFile.FullName, JsonConvert.SerializeObject(_config));
 
         // Get the config object to pass to the database.
-        _config = JsonSerializer.Deserialize<ApplicationConfig>(File.ReadAllText(_filePath.FullName + "/.tagster"))!;
+        _config = JsonConvert.DeserializeObject<ApplicationConfig>(_configFile.OpenText().ReadToEnd())!;
 
         _database = Database.InitialiseNew(_filePath, _config);
 
@@ -277,13 +326,13 @@ internal class Database
         string[] tags = tagGroup.Split(_config.Delimiter);
 
         // Add the tags to the database.
-        foreach (string tag in tags)
+        foreach (string sTag in tags)
         {
             // Add the tag if it does not exist.
-            DbTag? dbTag = GetTag(tag) ?? new DbTag(AddTag(tag).Id, DateTime.Now, tag, "");
+            Tag? tag = GetTag(sTag) ?? new Tag(AddTag(sTag).Id, DateTime.Now, sTag, "");
 
             // Add the tag to the file.
-            AddTagToFile(tagId, dbTag.Id);
+            AddTagToFile(tagId, tag.Id);
         }
 
         return GetFile(tagId)!;
@@ -342,7 +391,7 @@ internal class Database
     /// </summary>
     /// <param name="tag">The tag name to add.</param>
     /// <param name="colour"></param>
-    public DbTag AddTag(string tag, string colour = "")
+    public Tag AddTag(string tag, string colour = "")
     {
         // Create a query.
         SQLiteCommand command = new("INSERT INTO tags (name, colour) VALUES (@tag, @colour) RETURNING id;", _connection);
@@ -362,19 +411,19 @@ internal class Database
     public void EditTag(long id, string? tag = null, string? colour = null)
     {
         // First get the tag
-        DbTag dbTag = GetTag(id) ?? throw new MissingTagException("The tag does not exist.", id);
+        Tag tagOb = GetTag(id) ?? throw new MissingTagException("The tag does not exist.", id);
 
         // Create a new query.
-        SQLiteCommand command = new("UPDATE tags SET tag = @tag, colour = @colour WHERE id = @id;", _connection);
-        command.Parameters.AddWithValue("@tag", tag ?? dbTag.Name);
-        command.Parameters.AddWithValue("@colour", colour ?? dbTag.Colour);
+        SQLiteCommand command = new("UPDATE tags SET name = @tag, colour = @colour WHERE id = @id;", _connection);
+        command.Parameters.AddWithValue("@tag", tag ?? tagOb.Name);
+        command.Parameters.AddWithValue("@colour", colour ?? tagOb.Colour);
         command.Parameters.AddWithValue("@id", id);
 
         // Execute the command.
         command.ExecuteNonQuery();
     }
 
-    public DbTag? GetTag(long id)
+    public Tag? GetTag(long id)
     {
         // Create the query.
         SQLiteCommand command = new("SELECT * FROM tags WHERE id = @id;", _connection);
@@ -391,14 +440,14 @@ internal class Database
         }
 
         // Create a new tag object.
-        DbTag tag = new(reader);
+        Tag tag = new(reader);
 
         // Close the reader and return the tag.
         reader.Close();
         return tag;
     }
 
-    public DbTag? GetTag(string tagName)
+    public Tag? GetTag(string tagName)
     {
         // Create query
         SQLiteCommand command = new("SELECT * FROM tags WHERE name = @tag;", _connection);
@@ -415,7 +464,7 @@ internal class Database
         }
 
         // Create a new tag object.
-        DbTag tag = new(reader);
+        Tag tag = new(reader);
 
         // Close the reader and return the tag.
         reader.Close();
@@ -427,16 +476,16 @@ internal class Database
     /// </summary>
     /// <param name="tag">The tag name to get similar tags to.</param>
     /// <returns>List of similar tags.</returns>
-    public List<DbTag?> GetSimilarTags(string tag)
+    public List<Tag?> GetSimilarTags(string tag)
     {
         // Create query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE name LIKE %@tag%;", _connection);
+        SQLiteCommand command = new("SELECT * FROM tags WHERE name LIKE '%@tag%';", _connection);  // This probably wont work
         command.Parameters.AddWithValue("@tag", tag);
 
         // Get the tags.
         SQLiteDataReader reader = command.ExecuteReader();
-        List<DbTag?> tags = [];
-        while (reader.Read()) tags.Add(new DbTag(reader));
+        List<Tag?> tags = [];
+        while (reader.Read()) tags.Add(new Tag(reader));
 
         reader.Close();
         return tags;
@@ -472,7 +521,7 @@ internal class Database
         command.ExecuteNonQuery();
     }
 
-    public List<DbTag?> GetTagsForFile(long fileId)
+    public List<Tag?> GetTagsForFile(long fileId)
     {
         // Create a new command.
         SQLiteCommand command = new("SELECT tag_id FROM file_tags WHERE file_id = @fileId;", _connection);
@@ -484,7 +533,7 @@ internal class Database
         SQLiteDataReader reader = command.ExecuteReader();
 
         // Create a new list of tags.
-        List<DbTag?> tags = [];
+        List<Tag?> tags = [];
 
         // Read the reader.
         while (reader.Read()) tags.Add(GetTag(reader.GetInt64(0))!);
@@ -521,170 +570,3 @@ internal class Database
         return files;
     }
 }
-
-/// <summary>
-///     Represents a tag in the database.
-/// </summary>
-public class DbTag
-{
-    /// <summary>
-    /// Tag Id.
-    /// </summary>
-    public long Id { get; }
-
-    /// <summary>
-    /// Tag added to db time.
-    /// </summary>
-    public DateTime Created { get; }
-
-    /// <summary>
-    /// Tag name.
-    /// </summary>
-    public string Name { get; }
-
-    /// <summary>
-    /// Tag colour.
-    /// </summary>
-    public string? Colour  { get; }
-
-    /// <summary>
-    ///     Initialises a new tag object.
-    /// </summary>
-    /// <param name="id">Id of the tag.</param>
-    /// <param name="created">Tag added to db time.</param>
-    /// <param name="name">Name of the tag.</param>
-    /// <param name="colour">Colour of the tag.</param>
-    public DbTag(long id, DateTime created, string name, string colour)
-    {
-        Id = id;
-        Created = created;
-        Name = name;
-        Colour = colour;
-    }
-
-    /// <summary>
-    ///     Initialises a new tag object.
-    /// </summary>
-    /// <param name="reader">The sqlite reader to draw data from.</param>
-    public DbTag(SQLiteDataReader reader)
-    {
-        Id = reader.GetInt64(0);
-        Created = reader.GetDateTime(1);
-        Name = reader.GetString(2);
-        Colour = reader.GetString(3);
-    }
-
-}
-
-/// <summary>
-///     Represents a file in the database.
-/// </summary>
-public class DbFile
-{
-    /// <summary>
-    /// File ID.
-    /// </summary>
-    public long Id { get; }
-
-    /// <summary>
-    /// File added to db time.
-    /// </summary>
-    public DateTime Added { get; }
-
-    /// <summary>
-    /// File creation time. (OS)
-    /// </summary>
-    public DateTime Created { get; }
-
-    /// <summary>
-    /// File modified time. (OS)
-    /// </summary>
-    public DateTime Modified { get; }
-
-    /// <summary>
-    /// File path.
-    /// </summary>
-    public string Path { get; }
-
-    /// <summary>
-    /// List of tags applied to file.
-    /// </summary>
-    public List<DbTag> Tags { get; }
-
-    /// <summary>
-    ///     Initialises a new file object.
-    /// </summary>
-    /// <param name="id">Id of the file.</param>
-    /// <param name="added">File added to db time.</param>
-    /// <param name="path">Path to file.</param>
-    /// <param name="tags">List of tags applied to file.</param>
-    public DbFile(long id, DateTime added, string path, List<DbTag> tags)
-    {
-        Id = id;
-        Added = added;
-        Created = File.GetCreationTime(path);
-        Modified = File.GetLastWriteTime(path);
-        Path = path;
-        Tags = tags;
-    }
-
-    /// <summary>
-    /// Initialises a new file object from a reader.
-    /// </summary>
-    /// <param name="reader">The DataReader to read file data from.</param>
-    /// <param name="tags">Tags associated with this file.</param>
-    public DbFile(SQLiteDataReader reader, List<DbTag> tags)
-    {
-        Id = reader.GetInt64(0);
-        Added = reader.GetDateTime(1);
-        Created = File.GetCreationTime(reader.GetString(2));
-        Modified = File.GetLastWriteTime(reader.GetString(2));
-        Path = reader.GetString(2);
-        Tags = tags;
-    }
-}
-
-/// <summary>
-///     Used when a tag is not found.
-/// </summary>
-/// <param name="message">Error message</param>
-/// <param name="id">The id of the tag</param>
-public class MissingTagException(string message, long id) : Exception(message)
-{
-    /// <summary>
-    /// The tag id that was not found.
-    /// </summary>
-    public long TagId { get; } = id;
-}
-
-/// <summary>
-///     Used when a file is not found.
-/// </summary>
-/// <param name="message">Error message</param>
-/// <param name="id">The id of the file</param>
-public class MissingFileException(string message, long id) : Exception(message)
-{
-    /// <summary>
-    /// The file id that was not found.+
-    /// </summary>
-    public long FileId { get; } = id;
-}
-
-/// <summary>
-///     Used when tag collisions are detected.
-/// </summary>
-/// <param name="message">Error message</param>
-public class DuplicateTagsException(string message) : Exception(message);
-
-/// <summary>
-///     Used when the database has not been initialised.
-/// </summary>
-/// <param name="message">Error message</param>
-public class UninitialisedDatabaseException(string message) : Exception(message);
-
-
-/// <summary>
-///     Used when the database has already been initialised.
-/// </summary>
-/// <param name="message">Error message</param>
-public class AlreadyInitialisedDatabaseException(string message) : Exception(message);

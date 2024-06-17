@@ -2,6 +2,7 @@
 using CommandLine;
 using CommandLine.Text;
 using FileMgr;
+using FileMgr.Exceptions;
 
 namespace Cli;
 
@@ -91,9 +92,6 @@ internal class Program
 
     private int BuildNew()
     {
-        // Return the exit code
-        Console.WriteLine(Resources.BuildNewStart);
-
         // Create the management system
         try
         {
@@ -112,10 +110,10 @@ internal class Program
     /// <returns>Return status of subsystem.</returns>
     private int BuildExisting()
     {
-        // Return the exit code
-        Console.WriteLine(Resources.BuildExistingStart);
+        // Create the management system
+        _fileManager.InitialiseDirectory(true);
 
-        return 2;
+        return 0;
     }
 
     /// <summary>
