@@ -8,4 +8,9 @@
         <UseWPF>true</UseWPF>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\FileMgr\FileMgr.csproj" />
+      <ProjectReference Include="..\RegistryPatcher\RegistryPatcher.csproj" />
+    </ItemGroup>
+
 </Project>
