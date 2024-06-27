@@ -1,5 +1,11 @@
 ﻿/*
 LANG=sqlite3
+
+WARNING: DO NOT ATTEMPT TO EDIT THIS FILE UNLESS YOU KNOW WHAT YOU ARE DOING!
+
+This is the schema file for the FileMgr database. It is used to create the tables and relationships between them.
+
+This file is executed as a SQL script, so you can use any valid SQL commands in here.
 */
 
 CREATE TABLE IF NOT EXISTS files (
