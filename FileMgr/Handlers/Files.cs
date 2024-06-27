@@ -10,47 +10,27 @@ namespace FileMgr.Handlers;
 /// <summary>
 ///     Handles file-related database operations.
 /// </summary>
-public class Files
+public class Files : BaseHandler
 {
-    /// <summary>
-    ///     Database configuration.
-    /// </summary>
-    private readonly ApplicationConfig _config;
-
-    /// <summary>
-    ///     Low-level database connection.
-    /// </summary>
-    private readonly SQLiteConnection _connection;
-
-    /// <summary>
-    ///     Relations handler.
-    /// </summary>
-    private Relations _relations;
-
-    /// <summary>
-    ///     Tags handler.
-    /// </summary>
-    private Tags _tags;
-
-    /// <summary>
-    ///     Constructor for the Files handler.
-    /// </summary>
-    /// <param name="connection">Database connection.</param>
-    /// <param name="config">App config.</param>
-    public Files(SQLiteConnection connection, ApplicationConfig config)
+    /// <inheritdoc cref="BaseHandler" />
+    public Files(SQLiteConnection connection, ApplicationConfig config) : base(connection, config)
     {
-        _connection = connection;
-        _config = config;
     }
 
     /// <summary>
-    ///     Populates handlers. This is done separately as it must be done after all handlers are initialised.
+    ///     Gets the number of files in the database.
     /// </summary>
-    /// <param name="handlersGroup">Handlers group.</param>
-    public void Populate(HandlersGroup handlersGroup)
+    /// <returns>Number of files.</returns>
+    public int Count
     {
-        _relations = handlersGroup.Relations;
-        _tags = handlersGroup.Tags;
+        get
+        {
+            // Create a new command.
+            SQLiteCommand command = new("SELECT COUNT(*) FROM files;", Connection);
+
+            // Execute the command and get the count.
+            return (int)(long)command.ExecuteScalar();
+        }
     }
 
     /*************************************************************************************************************************************************************************************
@@ -65,7 +45,7 @@ public class Files
     public File? Get(long id)
     {
         // Create a new command.
-        SQLiteCommand command = new("SELECT * FROM files WHERE id = @id;", _connection);
+        SQLiteCommand command = new("SELECT * FROM files WHERE id = @id;", Connection);
 
         // Add the parameter.
         command.Parameters.AddWithValue("@id", id);
@@ -81,7 +61,7 @@ public class Files
         string filePath = reader.GetString(2);
 
         // Create a new file object and return it
-        return new File(fileId, added, filePath, _relations.GetTags(fileId));
+        return new File(fileId, added, filePath, HandlersGroup.Relations!.GetTags(fileId));
     }
 
 
@@ -93,7 +73,7 @@ public class Files
     public File Add(FileInfo file)
     {
         // Create a new command 
-        SQLiteCommand command = new("INSERT INTO files (path) VALUES (@path) RETURNING id;", _connection);
+        SQLiteCommand command = new("INSERT INTO files (path) VALUES (@path) RETURNING id;", Connection);
         command.Parameters.AddWithValue("@path", file.FullName);
 
         // Execute the command and get the ID
@@ -115,7 +95,7 @@ public class Files
         File newFile = Add(file);
 
         // Add the tags
-        foreach (Tag tag in tags) _relations.AddTag(newFile, tag);
+        foreach (Tag tag in tags) HandlersGroup.Relations!.AddTag(newFile, tag);
 
         return newFile;
     }

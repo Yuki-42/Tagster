@@ -9,48 +9,33 @@ namespace FileMgr.Handlers;
 /// <summary>
 ///     Handles tag-related database operations.
 /// </summary>
-public class Tags
+public class Tags : BaseHandler
 {
-    /// <summary>
-    ///     Database configuration.
-    /// </summary>
-    private readonly ApplicationConfig _config;
-
-    /// <summary>
-    ///     Low-level database connection.
-    /// </summary>
-    private readonly SQLiteConnection _connection;
-
-    /// <summary>
-    ///     Files handler.
-    /// </summary>
-    private Files _files;
-
-    /// <summary>
-    ///     Relations handler.
-    /// </summary>
-    private Relations _relations;
-
-    /// <summary>
-    ///     Tags handler constructor.
-    /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="config"></param>
-    public Tags(SQLiteConnection connection, ApplicationConfig config)
+    /// <inheritdoc cref="BaseHandler" />
+    public Tags(SQLiteConnection connection, ApplicationConfig config) : base(connection, config)
     {
-        _connection = connection;
-        _config = config;
     }
 
+
     /// <summary>
-    ///     Populates handlers. This is done separately as it must be done after all handlers are initialised.
+    ///     Gets the number of tags in the database.
     /// </summary>
-    /// <param name="handlersGroup">Handlers group.</param>
-    public void Populate(HandlersGroup handlersGroup)
+    /// <returns>Number of tags.</returns>
+    public int Count
     {
-        _files = handlersGroup.Files;
-        _relations = handlersGroup.Relations;
+        get
+        {
+            // Create a new command.
+            SQLiteCommand command = new("SELECT COUNT(*) FROM tags;", Connection);
+
+            // Execute the command and get the count.
+            return (int)(long)command.ExecuteScalar();
+        }
     }
+
+    /*************************************************************************************************************************************************************************************
+     * Database Operations
+     *************************************************************************************************************************************************************************************/
 
     /// <summary>
     ///     Gets a tag by its ID.
@@ -60,7 +45,7 @@ public class Tags
     public Tag? Get(long id)
     {
         // Create a query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE id = @id;", _connection);
+        SQLiteCommand command = new("SELECT * FROM tags WHERE id = @id;", Connection);
         command.Parameters.AddWithValue("@id", id);
 
         // Get the data.
@@ -89,7 +74,7 @@ public class Tags
     public Tag? Get(string name)
     {
         // Create query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE name = @tag;", _connection);
+        SQLiteCommand command = new("SELECT * FROM tags WHERE name = @tag;", Connection);
         command.Parameters.AddWithValue("@tag", name);
 
         // Get the data
@@ -118,7 +103,7 @@ public class Tags
     public List<Tag> GetSimilar(string name)
     {
         // Create query
-        SQLiteCommand command = new("SELECT * FROM tags WHERE name LIKE @tag;", _connection);
+        SQLiteCommand command = new("SELECT * FROM tags WHERE name LIKE @tag;", Connection);
         command.Parameters.AddWithValue("@tag", $"%{name}%");
 
         // Get the data
@@ -143,7 +128,7 @@ public class Tags
     )
     {
         // Create a query.
-        SQLiteCommand command = new("INSERT INTO tags (name, colour) VALUES (@tag, @colour) RETURNING id;", _connection);
+        SQLiteCommand command = new("INSERT INTO tags (name, colour) VALUES (@tag, @colour) RETURNING id;", Connection);
         command.Parameters.AddWithValue("@tag", name);
         command.Parameters.AddWithValue("@colour", colour);
 
@@ -159,7 +144,7 @@ public class Tags
     public Tag Edit(ETag tag)
     {
         // Create a query.
-        SQLiteCommand command = new("UPDATE tags SET name = @name, colour = @colour WHERE id = @id;", _connection);
+        SQLiteCommand command = new("UPDATE tags SET name = @name, colour = @colour WHERE id = @id;", Connection);
         command.Parameters.AddWithValue("@name", tag.Name);
         command.Parameters.AddWithValue("@colour", tag.Colour);
         command.Parameters.AddWithValue("@id", tag.Id);
@@ -176,7 +161,7 @@ public class Tags
     public void Delete(long id)
     {
         // Create a query.
-        SQLiteCommand command = new("DELETE FROM tags WHERE id = @id;", _connection);
+        SQLiteCommand command = new("DELETE FROM tags WHERE id = @id;", Connection);
         command.Parameters.AddWithValue("@id", id);
 
         // Execute the command.
