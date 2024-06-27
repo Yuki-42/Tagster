@@ -13,4 +13,16 @@
       <ProjectReference Include="..\RegistryPatcher\RegistryPatcher.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="PresentationFramework.Aero2">
+        <HintPath>..\..\..\..\..\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\PresentationFramework.Aero2.dll</HintPath>
+      </Reference>
+      <Reference Include="System.Windows.Forms">
+        <HintPath>..\..\..\..\..\Windows\Microsoft.NET\Framework\v4.0.30319\System.Windows.Forms.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="System.Drawing.Common" Version="9.0.0-preview.5.24306.5" />
+    </ItemGroup>
 </Project>
