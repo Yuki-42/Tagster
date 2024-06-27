@@ -1,0 +1,44 @@
+﻿<Window x:Class="GUI.ManageActiveFileManagers"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:GUI"
+        mc:Ignorable="d"
+        Style="{DynamicResource CustomWindowStyle}"
+        Title="Manage Active Directories" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open"/>
+                <MenuItem Header="_Close"/>
+                <MenuItem Header="_Exit"/>
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Quit" Click="QuitButton_Click"/>
+                <MenuItem Header="_Force Quit"/>
+            </MenuItem>
+        </Menu>
+        
+        <DataGrid Grid.Row="1" Margin="15" Name="ManagersList" AutoGenerateColumns="False" SelectionMode="Extended" SelectionUnit="FullRow">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Index" Binding="{Binding Index}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="UUID" Binding="{Binding Uuid}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Path" Binding="{Binding Directory}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Files Managed" Binding="{Binding FileCount}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Tags Managed" Binding="{Binding TagCount}" IsReadOnly="True"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Margin="15 0 15 15" Grid.Row="2" Orientation="Horizontal">
+            <Button Click="QuitButton_Click">Quit</Button>
+        </StackPanel>
+    </Grid>
+</Window>
