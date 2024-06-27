@@ -1,10 +1,15 @@
 using System.Data.SQLite;
-using FileMgr.Handlers;
+
+// Local libraries
+using FileMgr.Objects;
+
+// Overload for File to avoid conflicts with System.IO.File
+using File = FileMgr.Objects.File;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
-namespace FileMgr.Objects;
+namespace FileMgr.Handlers;
 
 /// <summary>
 /// Manages relations between files and tags.
@@ -20,6 +25,17 @@ public class Relations
     /// Database configuration.
     /// </summary>
     private readonly ApplicationConfig _config;
+    
+    /// <summary>
+    /// Files handler.
+    /// </summary>
+    private Files _files;
+    
+    /// <summary>
+    /// Tags handler.
+    /// </summary>
+    private Tags _tags;
+    
 
     /// <summary>
     /// Constructor for the Relations handler.
@@ -33,6 +49,16 @@ public class Relations
     {
         _connection = connection;
         _config = config;
+    }
+
+    /// <summary>
+    /// Populates handlers. This is done separately as it must be done after all handlers are initialised.
+    /// </summary>
+    /// <param name="handlersGroup">Handlers group.</param>
+    public void Populate(HandlersGroup handlersGroup)
+    {
+        _files = handlersGroup.Files;
+        _tags = handlersGroup.Tags;
     }
 
     /*************************************************************************************************************************************************************************************
@@ -85,6 +111,11 @@ public class Relations
      * File Returns
      *************************************************************************************************************************************************************************************/
     
+    /// <summary>
+    /// Gets all files with a tag.
+    /// </summary>
+    /// <param name="tag">Tag to get files with.</param>
+    /// <returns>List of files with that tag.</returns>
     public List<File> GetFiles(Tag tag)
     {
         // Create a new command.
@@ -103,7 +134,7 @@ public class Relations
         while (reader.Read())
         {
             long fileId = reader.GetInt64(0);
-            files.Add(new Files(_connection, _config).Get(fileId)!);
+            files.Add(_files.Get(fileId)!);
         }
 
         // Close the reader and return the files.
@@ -111,6 +142,44 @@ public class Relations
         return files;
     }
     
-    public 
+    /// <summary>
+    /// Adds a tag to a file.
+    /// </summary>
+    /// <param name="file">File to add tag to.</param>
+    /// <param name="tag">Tag to add to file.</param>
+    /// <returns>Updated file object.</returns>
+    public File AddTag(File file, Tag tag)
+    {
+        // Create a new command.
+        SQLiteCommand command = new("INSERT INTO file_tags (file_id, tag_id) VALUES (@file_id, @tag_id);", _connection);
+        command.Parameters.AddWithValue("@file_id", file.Id);
+        command.Parameters.AddWithValue("@tag_id", tag.Id);
+        
+        // Execute the command.
+        command.ExecuteNonQuery();
+        
+        // Return the file.
+        return _files.Get(file.Id)!;
+    }
     
+    
+    /// <summary>
+    /// Removes a tag from a file.
+    /// </summary>
+    /// <param name="file">File to remove a tag from.</param>
+    /// <param name="tag">Tag to remove.</param>
+    /// <returns>Updated file object.</returns>
+    public File RemoveTag(File file, Tag tag)
+    {
+        // Create a new command.
+        SQLiteCommand command = new("DELETE FROM file_tags WHERE file_id = @file_id AND tag_id = @tag_id;", _connection);
+        command.Parameters.AddWithValue("@file_id", file.Id);
+        command.Parameters.AddWithValue("@tag_id", tag.Id);
+        
+        // Execute the command.
+        command.ExecuteNonQuery();
+        
+        // Return the file.
+        return _files.Get(file.Id)!;
+    }
 }

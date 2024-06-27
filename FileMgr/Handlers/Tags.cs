@@ -1,27 +1,38 @@
 using System.Data.SQLite;
 using FileMgr.Objects;
+
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
 namespace FileMgr.Handlers;
 
 /// <summary>
-/// Handles tag-related database operations.
+///     Handles tag-related database operations.
 /// </summary>
 public class Tags
 {
     /// <summary>
-    /// Low-level database connection.
-    /// </summary>
-    private readonly SQLiteConnection _connection;
-
-    /// <summary>
-    /// Database configuration.
+    ///     Database configuration.
     /// </summary>
     private readonly ApplicationConfig _config;
 
     /// <summary>
-    /// Tags handler constructor.
+    ///     Low-level database connection.
+    /// </summary>
+    private readonly SQLiteConnection _connection;
+
+    /// <summary>
+    ///     Files handler.
+    /// </summary>
+    private Files _files;
+
+    /// <summary>
+    ///     Relations handler.
+    /// </summary>
+    private Relations _relations;
+
+    /// <summary>
+    ///     Tags handler constructor.
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="config"></param>
@@ -32,7 +43,17 @@ public class Tags
     }
 
     /// <summary>
-    /// Gets a tag by its ID.
+    ///     Populates handlers. This is done separately as it must be done after all handlers are initialised.
+    /// </summary>
+    /// <param name="handlersGroup">Handlers group.</param>
+    public void Populate(HandlersGroup handlersGroup)
+    {
+        _files = handlersGroup.Files;
+        _relations = handlersGroup.Relations;
+    }
+
+    /// <summary>
+    ///     Gets a tag by its ID.
     /// </summary>
     /// <param name="id">Tag ID</param>
     /// <returns>Tag object if found, null if not.</returns>
@@ -61,7 +82,7 @@ public class Tags
     }
 
     /// <summary>
-    /// Get a tag by its name.
+    ///     Get a tag by its name.
     /// </summary>
     /// <param name="name">Tag name.</param>
     /// <returns>Tag object if found, null if not.</returns>
@@ -99,10 +120,7 @@ public class Tags
         SQLiteDataReader reader = command.ExecuteReader();
         List<Tag> tags = [];
 
-        while (reader.Read())
-        {
-            tags.Add(new Tag(reader));
-        }
+        while (reader.Read()) tags.Add(new Tag(reader));
 
         // Close the reader and return the tags.
         reader.Close();
@@ -110,7 +128,7 @@ public class Tags
     }
 
     /// <summary>
-    /// Add a new tag to the database.
+    ///     Add a new tag to the database.
     /// </summary>
     /// <param name="name">Tag name.</param>
     /// <param name="colour">Tag colour.</param>
@@ -129,7 +147,7 @@ public class Tags
     }
 
     /// <summary>
-    /// Edits a tag in the database.
+    ///     Edits a tag in the database.
     /// </summary>
     /// <param name="tag">Tag object.</param>
     /// <returns>The updated tag object.</returns>
@@ -147,7 +165,7 @@ public class Tags
     }
 
     /// <summary>
-    /// Delete a tag from the database.
+    ///     Delete a tag from the database.
     /// </summary>
     /// <param name="id">Tag ID.</param>
     public void Delete(long id)
@@ -161,7 +179,7 @@ public class Tags
     }
 
     /// <summary>
-    /// Delete a tag from the database.
+    ///     Delete a tag from the database.
     /// </summary>
     /// <param name="tag">Tag Object.</param>
     public void Delete(Tag tag)

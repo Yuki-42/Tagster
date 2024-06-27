@@ -1,27 +1,39 @@
 using System.Data.SQLite;
 using FileMgr.Objects;
+using File = FileMgr.Objects.File;
+
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
 namespace FileMgr.Handlers;
 
 /// <summary>
-/// Handles file-related database operations.
+///     Handles file-related database operations.
 /// </summary>
 public class Files
 {
     /// <summary>
-    /// Low-level database connection.
-    /// </summary>
-    private readonly SQLiteConnection _connection;
-
-    /// <summary>
-    /// Database configuration.
+    ///     Database configuration.
     /// </summary>
     private readonly ApplicationConfig _config;
 
     /// <summary>
-    /// Constructor for the Files handler.
+    ///     Low-level database connection.
+    /// </summary>
+    private readonly SQLiteConnection _connection;
+
+    /// <summary>
+    ///     Relations handler.
+    /// </summary>
+    private Relations _relations;
+
+    /// <summary>
+    ///     Tags handler.
+    /// </summary>
+    private Tags _tags;
+
+    /// <summary>
+    ///     Constructor for the Files handler.
     /// </summary>
     /// <param name="connection">Database connection.</param>
     /// <param name="config">App config.</param>
@@ -32,11 +44,25 @@ public class Files
     }
 
     /// <summary>
-    /// Gets a file by its ID.
+    ///     Populates handlers. This is done separately as it must be done after all handlers are initialised.
+    /// </summary>
+    /// <param name="handlersGroup">Handlers group.</param>
+    public void Populate(HandlersGroup handlersGroup)
+    {
+        _relations = handlersGroup.Relations;
+        _tags = handlersGroup.Tags;
+    }
+
+    /*************************************************************************************************************************************************************************************
+     * Database Operations
+     *************************************************************************************************************************************************************************************/
+
+    /// <summary>
+    ///     Gets a file by its ID.
     /// </summary>
     /// <param name="id"></param>
-    /// <returns></returns>
-    public Objects.File? Get(long id)
+    /// <returns>File if found.</returns>
+    public File? Get(long id)
     {
         // Create a new command.
         SQLiteCommand command = new("SELECT * FROM files WHERE id = @id;", _connection);
@@ -44,39 +70,53 @@ public class Files
         // Add the parameter.
         command.Parameters.AddWithValue("@id", id);
 
-        // Execute the command and get the reader.
-        SQLiteDataReader reader = command.ExecuteReader();
+        using SQLiteDataReader reader = command.ExecuteReader();
 
-        if (!reader.HasRows)
-        {
-            reader.Close();
-            return null;
-        }
+        if (!reader.HasRows) return null;
 
         // Read the data.
         reader.Read();
         long fileId = reader.GetInt64(0);
         DateTime added = reader.GetDateTime(1);
         string filePath = reader.GetString(2);
-        reader.Close();
 
         // Create a new file object and return it
-        return new Objects.File(fileId, added, filePath, GetTags(fileId));
+        return new File(fileId, added, filePath, _relations.GetTags(fileId));
     }
 
 
-
-    public Objects.File Add(FileInfo file)
+    /// <summary>
+    ///     Adds a file to the database.
+    /// </summary>
+    /// <param name="file">File to add.</param>
+    /// <returns>File added.</returns>
+    public File Add(FileInfo file)
     {
+        // Create a new command 
+        SQLiteCommand command = new("INSERT INTO files (path) VALUES (@path) RETURNING id;", _connection);
+        command.Parameters.AddWithValue("@path", file.FullName);
 
+        // Execute the command and get the ID
+        return Get((long)command.ExecuteScalar())!;
     }
 
-    public Objects.File Add(
+    /// <summary>
+    ///     Adds a file to the database with tags.
+    /// </summary>
+    /// <param name="file">File to add.</param>
+    /// <param name="tags">Tags to add.</param>
+    /// <returns>File added.</returns>
+    public File Add(
         FileInfo file,
         List<Tag> tags
-        )
+    )
     {
+        // Add the file
+        File newFile = Add(file);
 
+        // Add the tags
+        foreach (Tag tag in tags) _relations.AddTag(newFile, tag);
+
+        return newFile;
     }
-
 }
