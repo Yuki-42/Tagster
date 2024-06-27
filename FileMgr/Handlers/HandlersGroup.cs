@@ -11,7 +11,7 @@ public class HandlersGroup
     /// <param name="files">Files Handler.</param>
     /// <param name="tags">Tags Handler.</param>
     /// <param name="relations">Relations Handler.</param>
-    public HandlersGroup(Files files, Tags tags, Relations relations)
+    public HandlersGroup(Files? files, Tags? tags, Relations? relations)
     {
         Files = files;
         Tags = tags;
@@ -21,15 +21,15 @@ public class HandlersGroup
     /// <summary>
     ///     Files handler.
     /// </summary>
-    public Files Files { get; }
+    public Files? Files { get; }
 
     /// <summary>
     ///     Tags handler.
     /// </summary>
-    public Tags Tags { get; }
+    public Tags? Tags { get; }
 
     /// <summary>
     ///     Relations Handler.
     /// </summary>
-    public Relations Relations { get; }
+    public Relations? Relations { get; }
 }
