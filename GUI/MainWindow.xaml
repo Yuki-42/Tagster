@@ -3,10 +3,31 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:GUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Style="{DynamicResource CustomWindowStyle}"
+        Title="Tagster GUI" Height="450" Width="800">
+    <Grid> <!-- THIS IS THE MAIN WINDOW -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Menu Grid.Row="0">
 
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open" Click="TopMenu_File_Open_Click" />
+                <MenuItem Header="_Manage" Click="TopMenu_File_Manage_Click" />
+                <MenuItem Header="_Exit" Click="TopMenu_File_Exit_Click" />
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Copy" />
+                <MenuItem Header="_Paste" />
+            </MenuItem>
+            <MenuItem Header="_Tests">
+                <MenuItem Header="_Test Manager List Concurrency" />
+            </MenuItem>
+        </Menu>
+        <Grid Grid.Row="1"> <!-- THIS IS THE MAIN CONTENT -->
+            <TextBlock Text="Hello, World!" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
     </Grid>
 </Window>
