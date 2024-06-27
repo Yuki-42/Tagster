@@ -10,6 +10,7 @@ using FileMgr.Handlers;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
 // Local libraries
 
 // Overload for FileInfo
@@ -56,13 +57,13 @@ public class RuntimeConfiguration(DirectoryInfo rootPath)
     /// <summary>
     ///     Location of the schema file.
     /// </summary>
-    public FileInfo SchemaFile { get; private set; } = new(GetExecutableDirectory().FullName + "/schema.sql");
+    public FileInfo SchemaFile { get; } = new(GetExecutableDirectory().FullName + "/schema.sql");
 
     private static DirectoryInfo GetExecutableDirectory()
     {
         // Get the path to the entry assembly
         string path = Assembly.GetEntryAssembly()!.Location;
-        
+
         // Now do some fancy index manipulation to get the directory
         int index = path.LastIndexOf(Path.DirectorySeparatorChar);
         return new DirectoryInfo(path[..index]);
@@ -87,6 +88,13 @@ public class FileManager
     ///     Stores persistent application configuration.
     /// </summary>
     private ApplicationConfig _config;
+
+    /// <summary>
+    ///     Id of the instance.
+    /// </summary>
+    public Guid Id = Guid.NewGuid();
+    
+    private readonly SQLiteConnection _connection;
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Miscellaneous Methods
@@ -134,13 +142,13 @@ public class FileManager
         }
 
         // Create an sqlite connection
-        SQLiteConnection connection = new("Data Source=" + _runtimeConfiguration.DatabaseFile.FullName + ";Version=3;");
-        connection.Open();
+        _connection = new("Data Source=" + _runtimeConfiguration.DatabaseFile.FullName + ";Version=3;");
+        _connection.Open();
 
         // Create the handlers
-        Tags = new Tags(connection, _config);
-        Files = new Files(connection, _config);
-        Relations = new Relations(connection, _config);
+        Tags = new Tags(_connection, _config);
+        Files = new Files(_connection, _config);
+        Relations = new Relations(_connection, _config);
 
         // Create handlers group
         HandlersGroup handlersGroup = new(Files, Tags, Relations);
@@ -297,7 +305,7 @@ public class FileManager
 
         // Execute schema creation
         string schema = File.ReadAllText(_runtimeConfiguration.SchemaFile.FullName);
-        SQLiteCommand command = new(schema, connection);  // This might break as we are passing several commands at once.
+        SQLiteCommand command = new(schema, connection); // This might break as we are passing several commands at once.
         command.ExecuteNonQuery();
     }
 
@@ -331,5 +339,14 @@ public class FileManager
         }
 
         foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories()) AddFromDirectory(subDirectory);
+    }
+
+    /// <summary>
+    ///     Exits the instance cleanly by closing the database connections and saving any in-memory changes.
+    /// </summary>
+    public void Exit()
+    {
+        // Close the database connections
+        _connection.Close();
     }
 }
