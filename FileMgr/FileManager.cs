@@ -1,20 +1,18 @@
 ﻿// Third-party libraries
+
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using Microsoft.Extensions.DependencyInjection;
+using FileMgr.Handlers;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-
 // Local libraries
-using FileMgr.Handlers;
-using FileMgr.Objects;
 
 // Overload for FileInfo
-using File = FileMgr.Objects.File;
 
 namespace FileMgr;
 
@@ -33,9 +31,7 @@ public class ApplicationConfig
 ///     Stores runtime configuration for the application.
 /// </summary>
 /// <param name="rootPath">Root path of the application.</param>
-/// <param name="configFile">Location of config file.</param>
-/// <param name="databaseFile">Location of database file.</param>
-public class RuntimeConfiguration(DirectoryInfo rootPath, FileInfo configFile, FileInfo databaseFile)
+public class RuntimeConfiguration(DirectoryInfo rootPath)
 {
     /// <summary>
     ///     Effectively the CWD for the application.
@@ -45,12 +41,32 @@ public class RuntimeConfiguration(DirectoryInfo rootPath, FileInfo configFile, F
     /// <summary>
     ///     Location of the config file.
     /// </summary>
-    public FileInfo ConfigFile { get; private set; } = configFile;
+    public FileInfo ConfigFile { get; } = new(rootPath.FullName + "/.tagster"); // TODO: Make these user configurable
 
     /// <summary>
     ///     Location of the database file.
     /// </summary>
-    public FileInfo DatabaseFile { get; private set; } = databaseFile;
+    public FileInfo DatabaseFile { get; } = new(rootPath.FullName + "/database.db");
+
+    /// <summary>
+    ///     Location of the executable directory.
+    /// </summary>
+    public DirectoryInfo ExecutableDirectory { get; private set; } = GetExecutableDirectory();
+
+    /// <summary>
+    ///     Location of the schema file.
+    /// </summary>
+    public FileInfo SchemaFile { get; private set; } = new(GetExecutableDirectory().FullName + "/schema.sql");
+
+    private static DirectoryInfo GetExecutableDirectory()
+    {
+        // Get the path to the entry assembly
+        string path = Assembly.GetEntryAssembly()!.Location;
+        
+        // Now do some fancy index manipulation to get the directory
+        int index = path.LastIndexOf(Path.DirectorySeparatorChar);
+        return new DirectoryInfo(path[..index]);
+    }
 }
 
 /// <summary>
@@ -91,23 +107,21 @@ public class FileManager
         int actionCode
     )
     {
-        // Create service provider
-        IServiceCollection services = new ServiceCollection();
-
         // Do runtime configuration
-        _runtimeConfiguration = new RuntimeConfiguration(
-            filePath,
-            new FileInfo(filePath.FullName + "/.tagster"),
-            new FileInfo(filePath.FullName + "/database.db")
-        );
+        _runtimeConfiguration = new RuntimeConfiguration(filePath);
 
         // Do the registry checks
         DoRegistryChecks();
 
+        // Execute the correct action code
         switch (actionCode)
         {
-            case 1:
-                Connect();
+            case 1: // Connect to an existing database
+                // Do the runtime exceptions before connecting.
+                DoRuntimeExceptions();
+
+                // We know that everything is present and correct, so we can read in the config
+                _config = JsonConvert.DeserializeObject<ApplicationConfig>(_runtimeConfiguration.ConfigFile.OpenText().ReadToEnd())!;
                 break;
             case 2:
                 InitialiseNew();
@@ -120,7 +134,7 @@ public class FileManager
         }
 
         // Create an sqlite connection
-        SQLiteConnection connection = new("Data Source=" + _runtimeConfiguration.RootPath.FullName + ";Version=3;");
+        SQLiteConnection connection = new("Data Source=" + _runtimeConfiguration.DatabaseFile.FullName + ";Version=3;");
         connection.Open();
 
         // Create the handlers
@@ -130,23 +144,14 @@ public class FileManager
 
         // Create handlers group
         HandlersGroup handlersGroup = new(Files, Tags, Relations);
-        
+
         // Populate the handlers
         Tags.Populate(handlersGroup);
         Files.Populate(handlersGroup);
         Relations.Populate(handlersGroup);
 
-        // Close the connection
-        connection.Close();
-        connection.Dispose();
-
-        // Register services
-        services.AddSingleton(Tags);
-        services.AddSingleton(Files);
-        services.AddSingleton(Relations);
-
-        services.AddSingleton(_config);
-        services.AddSingleton(_runtimeConfiguration);
+        // Add files to database if we are initialising a new database
+        if (actionCode == 2) AddFromDirectory(filePath);
     }
 
     // Overload for string path
@@ -226,7 +231,7 @@ public class FileManager
     /// <summary>
     ///     Ensures that the program can run by checking the registry for the LongPathsEnabled key.
     /// </summary>
-    private void DoRegistryChecks()
+    private static void DoRegistryChecks()
     {
         // Check current platform. If it is not windows, return
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
@@ -273,18 +278,6 @@ public class FileManager
 
 
     /// <summary>
-    ///     Tries to connect to an existing DB in the current working directory.
-    /// </summary>
-    private void Connect()
-    {
-        // Do the runtime exceptions before connecting.
-        DoRuntimeExceptions();
-
-        // We know that everything is present and correct, so we can read in the config
-        _config = JsonConvert.DeserializeObject<ApplicationConfig>(_runtimeConfiguration.ConfigFile.OpenText().ReadToEnd())!;
-    }
-
-    /// <summary>
     ///     Called by the frontend to initialise the directory by creating the database and indexing the files.
     /// </summary>
     public void InitialiseDirectory(bool fromExistingSources = false)
@@ -293,13 +286,19 @@ public class FileManager
         DoRuntimeExceptions([]);
 
         // Create a new .tagster file.
-        System.IO.File.WriteAllText(_runtimeConfiguration.ConfigFile.FullName, JsonConvert.SerializeObject(_config));
+        File.WriteAllText(_runtimeConfiguration.ConfigFile.FullName, JsonConvert.SerializeObject(_config));
 
         // Get the config object to pass to the database.
         _config = JsonConvert.DeserializeObject<ApplicationConfig>(_runtimeConfiguration.ConfigFile.OpenText().ReadToEnd())!;
 
-        // Now add all files in the directory to the database.
-        AddFromDirectory(_runtimeConfiguration.RootPath);
+        // Create an sqlite connection
+        SQLiteConnection connection = new("Data Source=" + _runtimeConfiguration.DatabaseFile.FullName + ";Version=3;");
+        connection.Open();
+
+        // Execute schema creation
+        string schema = File.ReadAllText(_runtimeConfiguration.SchemaFile.FullName);
+        SQLiteCommand command = new(schema, connection);  // This might break as we are passing several commands at once.
+        command.ExecuteNonQuery();
     }
 
     /// <summary>
@@ -309,9 +308,8 @@ public class FileManager
     {
         InitialiseDirectory(true);
     }
-    
+
     /// <summary>
-    /// 
     /// </summary>
     public void InitialiseExisting()
     {
@@ -331,6 +329,7 @@ public class FileManager
             Console.WriteLine(file.FullName);
             Files.Add(file);
         }
+
         foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories()) AddFromDirectory(subDirectory);
     }
 }
