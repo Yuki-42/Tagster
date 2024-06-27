@@ -110,6 +110,11 @@ public class Tags
         return tag;
     }
 
+    /// <summary>
+    ///     Gets tags with similar names.
+    /// </summary>
+    /// <param name="name">Target name.</param>
+    /// <returns>List of similar tags.</returns>
     public List<Tag> GetSimilar(string name)
     {
         // Create query
