@@ -9,7 +9,8 @@
     <Grid> <!-- THIS IS THE MAIN WINDOW -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Menu Grid.Row="0">
 
@@ -26,8 +27,32 @@
                 <MenuItem Header="_Test Manager List Concurrency" />
             </MenuItem>
         </Menu>
-        <Grid Grid.Row="1"> <!-- THIS IS THE MAIN CONTENT -->
-            <TextBlock Text="Hello, World!" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Grid Grid.Row="1"> <!-- Manager tabs -->
+            <TabControl>
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="10" Height="10"/>
+                            <TextBlock>Tab 1</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
+                    <StackPanel>
+                        <TextBlock>Enter some text</TextBlock>
+                        <TextBox Name="textBox1" Width="50"/>
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Tab 2">
+                    <!--Bind TextBlock.Text to the TextBox on the first
+    TabItem.-->
+                    <TextBlock Text="{Binding ElementName=textBox1, Path=Text}"/>
+                </TabItem>
+            </TabControl>
+
+            <!--
+            <TabControl Name="ManagersTabs">
+                
+            </TabControl> 
+            -->
         </Grid>
     </Grid>
 </Window>

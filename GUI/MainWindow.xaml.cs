@@ -1,5 +1,8 @@
-﻿using System.IO;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using FileMgr;
 
 // Project-specific
@@ -21,12 +24,12 @@ public partial class MainWindow : Window
     /// </summary>
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
-    private List<KeyValuePair<DirectoryInfo, FileManager>> _fileManagers;
-
+    private ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> _fileManagers;
+    
     public MainWindow()
     {
         InitializeComponent();
-        _fileManagers = new List<KeyValuePair<DirectoryInfo, FileManager>>();
+        _fileManagers = new ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>>();
         _topMenu = new TopMenu(ref _fileManagers);
     }
 
@@ -45,5 +48,15 @@ public partial class MainWindow : Window
     {
         _topMenu.TopMenu_File_Exit_Click(sender, e);
         Close();
+    }
+
+    private TabItem ConstructManagerTab(FileManager manager)
+    {
+        // Create the tab item
+        TabItem tabItem = new()
+        {
+            Header = manager.FriendlyName
+        };
+        return tabItem;
     }
 }

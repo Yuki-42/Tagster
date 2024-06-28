@@ -46,6 +46,11 @@ public class ApplicationConfig
     ///     Database file location.
     /// </summary>
     public required string DatabaseFile { get; set; } = DefaultConfig.DatabaseFile;
+    
+    /// <summary>
+    ///    Managed name. This is the "friendly" name of the management system shown on the frontend.
+    /// </summary>
+    public required string ManagedName { get; set; } = Environment.CurrentDirectory;
 }
 
 /// <summary>
@@ -114,7 +119,15 @@ public class FileManager
     /// <summary>
     ///     Id of the instance.
     /// </summary>
-    public Guid Id = Guid.NewGuid();
+    public Guid Id { get; set; } = Guid.NewGuid();
+    
+    /// <inheritdoc cref="ApplicationConfig.ManagedName"/>
+    public string FriendlyName => _config.ManagedName;
+    
+    /// <summary>
+    /// Path to the root directory.
+    /// </summary>
+    public string RootPath => _runtimeConfiguration.RootPath.FullName;
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Miscellaneous Methods

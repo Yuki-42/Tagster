@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using FileMgr;
@@ -12,9 +14,9 @@ public class TopMenu
     /// <summary>
     ///     File Managers. Key is the directory.
     /// </summary>
-    private List<KeyValuePair<DirectoryInfo, FileManager>> _fileManagers;
+    private ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> _fileManagers;
     
-    public TopMenu(ref List<KeyValuePair<DirectoryInfo, FileManager>> fileManagers)
+    public TopMenu(ref ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> fileManagers)
     {
         _fileManagers = fileManagers;
     }

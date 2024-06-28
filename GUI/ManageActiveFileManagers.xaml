@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:GUI"
         mc:Ignorable="d"
         Style="{DynamicResource CustomWindowStyle}"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}"
         Title="Manage Active Directories" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
@@ -28,13 +29,12 @@
             </MenuItem>
         </Menu>
         
-        <DataGrid Grid.Row="1" Margin="15" Name="ManagersList" AutoGenerateColumns="False" SelectionMode="Extended" SelectionUnit="FullRow">
+        <DataGrid Grid.Row="1" Margin="15" Name="ManagersList" AutoGenerateColumns="False" SelectionMode="Extended" SelectionUnit="FullRow" ItemsSource="{Binding FileManagers}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Index" Binding="{Binding Index}" IsReadOnly="True"/>
-                <DataGridTextColumn Header="UUID" Binding="{Binding Uuid}" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Path" Binding="{Binding Directory}" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Files Managed" Binding="{Binding FileCount}" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Tags Managed" Binding="{Binding TagCount}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="UUID" Binding="{Binding Value.Id}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Path" Binding="{Binding Value.RootPath}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Files Managed" Binding="{Binding Value.Files.Count}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Tags Managed" Binding="{Binding Value.Tags.Count}" IsReadOnly="True"/>
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Margin="15 0 15 15" Grid.Row="2" Orientation="Horizontal">
