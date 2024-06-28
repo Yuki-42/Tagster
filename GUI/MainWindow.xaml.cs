@@ -19,18 +19,13 @@ public partial class MainWindow : Window
     /// </summary>
     private readonly TopMenu _topMenu;
 
-    /// <summary>
-    ///     File Managers. Key is the directory.
-    /// </summary>
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    // ReSharper disable once FieldCanBeMadeReadOnly.Local
-    private ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> _fileManagers;
-    
+    public Common CommonData;
+
     public MainWindow()
     {
         InitializeComponent();
-        _fileManagers = new ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>>();
-        _topMenu = new TopMenu(ref _fileManagers);
+        _topMenu = new TopMenu();
+        CommonData = Common.GetInstance();
     }
 
     // Expose TopMenu events

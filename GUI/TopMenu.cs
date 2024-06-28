@@ -14,11 +14,14 @@ public class TopMenu
     /// <summary>
     ///     File Managers. Key is the directory.
     /// </summary>
-    private ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> _fileManagers;
-    
-    public TopMenu(ref ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> fileManagers)
+    public Common CommonData { get; private set; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TopMenu"/> class.
+    /// </summary>
+    public TopMenu()
     {
-        _fileManagers = fileManagers;
+        CommonData = Common.GetInstance();
     }
     
     public void TopMenu_File_Open_Click(object sender, RoutedEventArgs e)
@@ -29,7 +32,7 @@ public class TopMenu
         dialog.ShowNewFolderButton = true;
         dialog.RootFolder = Environment.SpecialFolder.MyComputer;
 
-        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+        if (dialog.ShowDialog() != DialogResult.OK) return;
         DirectoryInfo directory = new(dialog.SelectedPath);
         int actionCode; // 1 = open existing, 2 = create new, 3 is unused for this method
 
@@ -47,10 +50,10 @@ public class TopMenu
         switch (actionCode)
         {
             case 1:
-                _fileManagers.Add(new KeyValuePair<DirectoryInfo, FileManager>(directory, new FileManager(directory, actionCode)));
+                CommonData.FileManagers.Add(new KeyValuePair<DirectoryInfo, FileManager>(directory, new FileManager(directory, actionCode)));
                 break;
             case 2:
-                _fileManagers.Add(new KeyValuePair<DirectoryInfo, FileManager>(directory, new FileManager(directory, actionCode)));
+                CommonData.FileManagers.Add(new KeyValuePair<DirectoryInfo, FileManager>(directory, new FileManager(directory, actionCode)));
                 break;
             default:
                 return;
@@ -61,14 +64,14 @@ public class TopMenu
     public void TopMenu_File_Manage_Click(object sender, RoutedEventArgs e)
     {
         // Open a new window to manage active file managers
-        ManageActiveFileManagers window = new(ref _fileManagers);
+        ManageActiveFileManagers window = new();
         window.Show();
     }
 
     public void TopMenu_File_Exit_Click(object sender, RoutedEventArgs e)
     {
         // Cleanly exit all file managers
-        foreach (KeyValuePair<DirectoryInfo, FileManager> managerSet in _fileManagers) managerSet.Value.Exit();
+        foreach (KeyValuePair<DirectoryInfo, FileManager> managerSet in CommonData.FileManagers) managerSet.Value.Exit();
 
         // Close the application gracefully
         return; // This cannot be done from within this class as it is not the main window

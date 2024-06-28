@@ -10,14 +10,12 @@ namespace GUI;
 
 public partial class ManageActiveFileManagers : Window
 {
-    /// <summary>
-    ///     File Managers. Key is the directory.
-    /// </summary>
-    public ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> FileManagers { get; set; }
+    
+    public Common CommonData { get; private set; }
 
-    public ManageActiveFileManagers(ref ObservableCollection<KeyValuePair<DirectoryInfo, FileManager>> fileManagers)
+    public ManageActiveFileManagers()
     {
-        FileManagers = fileManagers;
+        CommonData = Common.GetInstance();
         InitializeComponent();
         //PopulateManagersList();
     }
@@ -62,12 +60,12 @@ public partial class ManageActiveFileManagers : Window
         Guid uuid = selectedItem.Value.Id;
         
         // Get the file manager
-        FileManager fileManager = FileManagers.First(x => x.Value.Id == uuid).Value;
+        FileManager fileManager = CommonData.FileManagers.First(x => x.Value.Id == uuid).Value;
         
         // Close the file manager
         fileManager.Exit();
         
         // Remove the file manager from the list
-        FileManagers.Remove(FileManagers.First(x => x.Value.Id == uuid));
+        CommonData.FileManagers.Remove(CommonData.FileManagers.First(x => x.Value.Id == uuid));
     }
 }

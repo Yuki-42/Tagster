@@ -107,6 +107,7 @@ public class FileManager
     ///     Runtime configuration.
     /// </summary>
     private readonly RuntimeConfiguration _runtimeConfiguration;
+    
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Class Variables
      */
@@ -129,9 +130,9 @@ public class FileManager
     /// </summary>
     public string RootPath => _runtimeConfiguration.RootPath.FullName;
 
-    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    /*************************************************************************************************************************************************************************************
      * Miscellaneous Methods
-     */
+     *************************************************************************************************************************************************************************************/
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="FileManager" /> class.
