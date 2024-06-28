@@ -117,7 +117,48 @@ public class Relations : BaseHandler
 
         // Execute the command.
         command.ExecuteNonQuery();
+        
+        // Change the name of the file to include the tag 
+        // Format:
+        // - Original: "file.txt"
+        // - New (assuming separator is &): "file.tag.txt" 
+        // - And another tag would be "file.tag1&tag2.txt"
+        
+        // Split the file into 3 parts at each period
+        string filename = file.Path.Split(Path.PathSeparator)[^1];
 
+        string[] tags = [];
+        string extension = filename.Split('.').Last();
+        string name = filename.Split('.').First();
+        
+        if (filename.Count(x => x == '.') > 1)
+        {
+            // If there is more than one period, there are tags. (Note: The tags are not separated by periods, but by a user defined separator)
+            tags = filename.Split('.')  // Now discard the first and last elements 
+                .Skip(1).ToArray();
+
+            tags = tags.Take(tags.Length - 1).ToArray();
+            
+            // Now recombine the tags array into a single string
+            string tagString = string.Join("", tags);
+            
+            tags = tagString.Split(Config.Delimiter);
+        }
+        
+        // Add the new tag to the tags array
+        tags = tags.Append(tag.Name).ToArray();
+        
+        // Rejoin the tags array into a single string
+        string newTagString = string.Join(Config.Delimiter, tags);
+        
+        // Rejoin the tags array into a single string
+        string newFilename = $"{name}.{newTagString}.{extension}";
+        
+        // Rename the file
+        System.IO.File.Move(file.Path, Path.Combine(file.Path, newFilename));
+        file.Path = Path.Combine(file.Path, newFilename);
+        HandlersGroup.Files!.Edit(file); // Update the file in the database
+        
         // Return the file.
         return HandlersGroup.Files!.Get(file.Id)!;
     }
@@ -138,8 +179,45 @@ public class Relations : BaseHandler
 
         // Execute the command.
         command.ExecuteNonQuery();
-
+        
+        // Change the name of the file to remove the tag
+        string[] tags = GetTagsFromFilename(file.Path);
+        
+        // Remove the tag from the tags array
+        tags = tags.Where(x => x != tag.Name).ToArray();
+        
+        // Rename the file
+        string newFilename = $"{file.Path.Split(Path.PathSeparator)[^1].Split('.').First()}.{string.Join(Config.Delimiter, tags)}.{file.Path.Split(Path.PathSeparator)[^1].Split('.').Last()}";
+        
+        // Rename the file
+        System.IO.File.Move(file.Path, Path.Combine(file.Path, newFilename));
+        file.Path = Path.Combine(file.Path, newFilename);
+        HandlersGroup.Files!.Edit(file); // Update the file in the database
+        
         // Return the file.
         return HandlersGroup.Files!.Get(file.Id)!;
+    }
+    
+    private string[] GetTagsFromFilename(string filename)
+    {
+        // Split the file into 3 parts at each period
+        string[] tags = [];
+        string extension = filename.Split('.').Last();
+        string name = filename.Split('.').First();
+
+        if (filename.Count(x => x == '.') <= 1) return tags;
+        
+        // If there is more than one period, there are tags. (Note: The tags are not separated by periods, but by a user defined separator)
+        tags = filename.Split('.')  // Now discard the first and last elements 
+            .Skip(1).ToArray();
+
+        tags = tags.Take(tags.Length - 1).ToArray();
+            
+        // Now recombine the tags array into a single string
+        string tagString = string.Join("", tags);
+            
+        tags = tagString.Split(Config.Delimiter);
+
+        return tags;
     }
 }

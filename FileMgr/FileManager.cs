@@ -13,9 +13,24 @@ using Newtonsoft.Json.Linq;
 
 // Local libraries
 
-// Overload for FileInfo
 
 namespace FileMgr;
+
+/// <summary>
+///     Default configuration values.
+/// </summary>
+public class DefaultConfig
+{
+    /// <summary>
+    ///     Tag delimiter in file names.
+    /// </summary>
+    public const char Delimiter = '&';
+
+    /// <summary>
+    ///     Database file.
+    /// </summary>
+    public const string DatabaseFile = "database.db";
+}
 
 /// <summary>
 ///     Model for the application configuration.
@@ -25,14 +40,19 @@ public class ApplicationConfig
     /// <summary>
     ///     Tag delimiter in file names.
     /// </summary>
-    public required string Delimiter { get; set; }
+    public required string Delimiter { get; set; } = DefaultConfig.Delimiter.ToString();
+    
+    /// <summary>
+    ///     Database file location.
+    /// </summary>
+    public required string DatabaseFile { get; set; } = DefaultConfig.DatabaseFile;
 }
 
 /// <summary>
 ///     Stores runtime configuration for the application.
 /// </summary>
 /// <param name="rootPath">Root path of the application.</param>
-public class RuntimeConfiguration(DirectoryInfo rootPath)
+public class RuntimeConfiguration(DirectoryInfo rootPath, ApplicationConfig config)
 {
     /// <summary>
     ///     Effectively the CWD for the application.
@@ -42,12 +62,12 @@ public class RuntimeConfiguration(DirectoryInfo rootPath)
     /// <summary>
     ///     Location of the config file.
     /// </summary>
-    public FileInfo ConfigFile { get; } = new(rootPath.FullName + "/.tagster"); // TODO: Make these user configurable
+    public FileInfo ConfigFile { get; } = new(rootPath.FullName + "/.tagster");
 
     /// <summary>
     ///     Location of the database file.
     /// </summary>
-    public FileInfo DatabaseFile { get; } = new(rootPath.FullName + "/database.db");
+    public FileInfo DatabaseFile { get; } = new(rootPath.FullName + "/" + config.DatabaseFile);
 
     /// <summary>
     ///     Location of the executable directory.
@@ -76,6 +96,8 @@ public class RuntimeConfiguration(DirectoryInfo rootPath)
 [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
 public class FileManager
 {
+    private readonly SQLiteConnection _connection;
+
     /// <summary>
     ///     Runtime configuration.
     /// </summary>
@@ -93,8 +115,6 @@ public class FileManager
     ///     Id of the instance.
     /// </summary>
     public Guid Id = Guid.NewGuid();
-    
-    private readonly SQLiteConnection _connection;
 
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Miscellaneous Methods
@@ -115,8 +135,8 @@ public class FileManager
         int actionCode
     )
     {
-        // Do runtime configuration
-        _runtimeConfiguration = new RuntimeConfiguration(filePath);
+        // Load configuration
+        _runtimeConfiguration = LoadConfigAndRuntime(filePath);
 
         // Do the registry checks
         DoRegistryChecks();
@@ -127,9 +147,6 @@ public class FileManager
             case 1: // Connect to an existing database
                 // Do the runtime exceptions before connecting.
                 DoRuntimeExceptions();
-
-                // We know that everything is present and correct, so we can read in the config
-                _config = JsonConvert.DeserializeObject<ApplicationConfig>(_runtimeConfiguration.ConfigFile.OpenText().ReadToEnd())!;
                 break;
             case 2:
                 InitialiseNew();
@@ -142,10 +159,11 @@ public class FileManager
         }
 
         // Create an sqlite connection
-        _connection = new("Data Source=" + _runtimeConfiguration.DatabaseFile.FullName + ";Version=3;");
+        _connection = new SQLiteConnection("Data Source=" + _runtimeConfiguration.DatabaseFile.FullName + ";Version=3;");
         _connection.Open();
 
         // Create the handlers
+        Debug.Assert(_config != null, nameof(_config) + " != null");
         Tags = new Tags(_connection, _config);
         Files = new Files(_connection, _config);
         Relations = new Relations(_connection, _config);
@@ -225,7 +243,7 @@ public class FileManager
     ///     Performs runtime checks to ensure the program can run. Uses CheckFilesystemInitialised.
     /// </summary>
     /// <param name="skips">Codes to skip the error raising for.</param>
-    private void DoRuntimeExceptions(List<int>? skips = null)
+    private void DoRuntimeExceptions(ICollection<int>? skips = null)
     {
         // Check the filesystem initialisation status.
         int status = CheckFilesystemInitialised();
@@ -294,7 +312,7 @@ public class FileManager
         DoRuntimeExceptions([]);
 
         // Create a new .tagster file.
-        File.WriteAllText(_runtimeConfiguration.ConfigFile.FullName, JsonConvert.SerializeObject(_config));
+        File.WriteAllText(_runtimeConfiguration.ConfigFile.FullName, JsonConvert.SerializeObject(new DefaultConfig()));
 
         // Get the config object to pass to the database.
         _config = JsonConvert.DeserializeObject<ApplicationConfig>(_runtimeConfiguration.ConfigFile.OpenText().ReadToEnd())!;
@@ -339,6 +357,27 @@ public class FileManager
         }
 
         foreach (DirectoryInfo subDirectory in directory.EnumerateDirectories()) AddFromDirectory(subDirectory);
+    }
+
+    /// <summary>
+    ///     Loads the configuration file into _config.
+    /// </summary>
+    private RuntimeConfiguration LoadConfigAndRuntime(DirectoryInfo path)
+    {
+        FileInfo configFile = new("./.tagster");
+        
+        // Check if the config file exists
+        if (!configFile.Exists)
+        {
+            // Create a new config file
+            File.WriteAllText(configFile.FullName, JsonConvert.SerializeObject(new DefaultConfig()));
+        }
+        
+        // Read the config file
+        _config = JsonConvert.DeserializeObject<ApplicationConfig>(configFile.OpenText().ReadToEnd())!;
+        
+        // Now that the config is read in, we can create the runtime configuration
+        return new RuntimeConfiguration(path, _config);
     }
 
     /// <summary>

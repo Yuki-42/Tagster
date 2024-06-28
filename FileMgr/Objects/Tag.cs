@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.SQLite;
 
 namespace FileMgr.Objects;
@@ -8,24 +9,24 @@ namespace FileMgr.Objects;
 public class Tag
 {
     /// <summary>
-    /// Tag Id.
+    ///     Tag colour.
     /// </summary>
-    public readonly long Id;
+    public readonly string? Colour;
 
     /// <summary>
-    /// Tag added to db time.
+    ///     Tag added to db time.
     /// </summary>
     public readonly DateTime Created;
 
     /// <summary>
-    /// Tag name.
+    ///     Tag Id.
     /// </summary>
-    public readonly string Name;
+    public readonly long Id;
 
     /// <summary>
-    /// Tag colour.
+    ///     Tag name.
     /// </summary>
-    public readonly string? Colour;
+    public readonly string Name;
 
     /// <summary>
     ///     Initialises a new tag object.
@@ -46,7 +47,7 @@ public class Tag
     ///     Initialises a new tag object.
     /// </summary>
     /// <param name="reader">The sqlite reader to draw data from.</param>
-    public Tag(SQLiteDataReader reader)
+    public Tag(IDataRecord reader)
     {
         Id = reader.GetInt64(0);
         Created = reader.GetDateTime(1);
@@ -55,7 +56,7 @@ public class Tag
     }
 
     /// <summary>
-    ///    Makes a tag editable.
+    ///     Makes a tag editable.
     /// </summary>
     /// <returns>The editable tag object.</returns>
     public ETag Edit()

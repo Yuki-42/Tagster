@@ -1,32 +1,32 @@
 namespace FileMgr.Objects;
 
 /// <summary>
-/// Editable tag object.
+///     Editable tag object.
 /// </summary>
 public class ETag
 {
     /// <summary>
-    /// Tag Id.
-    /// </summary>
-    public readonly long Id;
-
-    /// <summary>
-    /// Tag added to db time.
+    ///     Tag added to db time.
     /// </summary>
     public readonly DateTime Created;
 
     /// <summary>
-    /// Tag name.
+    ///     Tag Id.
     /// </summary>
-    public string Name;
+    public readonly long Id;
 
     /// <summary>
-    /// Tag colour.
+    ///     Tag colour.
     /// </summary>
     public string? Colour;
 
     /// <summary>
-    /// Initialises a new editable tag object.
+    ///     Tag name.
+    /// </summary>
+    public string Name;
+
+    /// <summary>
+    ///     Initialises a new editable tag object.
     /// </summary>
     /// <param name="tag">Parent object.</param>
     public ETag(Tag tag)

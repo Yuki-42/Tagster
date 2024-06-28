@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.SQLite;
 
 namespace FileMgr.Objects;
@@ -7,36 +8,6 @@ namespace FileMgr.Objects;
 /// </summary>
 public class File
 {
-    /// <summary>
-    /// File ID.
-    /// </summary>
-    public long Id { get; }
-
-    /// <summary>
-    /// File added to db time.
-    /// </summary>
-    public DateTime Added { get; }
-
-    /// <summary>
-    /// File creation time. (OS)
-    /// </summary>
-    public DateTime Created { get; }
-
-    /// <summary>
-    /// File modified time. (OS)
-    /// </summary>
-    public DateTime Modified { get; }
-
-    /// <summary>
-    /// File path.
-    /// </summary>
-    public string Path { get; }
-
-    /// <summary>
-    /// List of tags applied to file.
-    /// </summary>
-    public List<Tag> Tags { get; }
-
     /// <summary>
     ///     Initialises a new file object.
     /// </summary>
@@ -55,11 +26,11 @@ public class File
     }
 
     /// <summary>
-    /// Initialises a new file object from a reader.
+    ///     Initialises a new file object from a reader.
     /// </summary>
     /// <param name="reader">The DataReader to read file data from.</param>
     /// <param name="tags">Tags associated with this file.</param>
-    public File(SQLiteDataReader reader, List<Tag> tags)
+    public File(IDataRecord reader, List<Tag> tags)
     {
         Id = reader.GetInt64(0);
         Added = reader.GetDateTime(1);
@@ -68,4 +39,39 @@ public class File
         Path = reader.GetString(2);
         Tags = tags;
     }
+
+    /// <summary>
+    ///     File ID.
+    /// </summary>
+    public readonly long Id;
+
+    /// <summary>
+    ///     File added to db time.
+    /// </summary>
+    public DateTime Added { get; }
+
+    /// <summary>
+    ///     File creation time. (OS)
+    /// </summary>
+    public DateTime Created { get; }
+
+    /// <summary>
+    ///     File modified time. (OS)
+    /// </summary>
+    public DateTime Modified { get; }
+
+    /// <summary>
+    ///     File path.
+    /// </summary>
+    public string Path { get; set; }
+
+    /// <summary>
+    ///     List of tags applied to file.
+    /// </summary>
+    public List<Tag> Tags { get; }
+
+    /// <summary>
+    ///     File info object.
+    /// </summary>
+    public FileInfo FileInfo => new(Path);
 }

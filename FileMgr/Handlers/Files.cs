@@ -46,8 +46,6 @@ public class Files : BaseHandler
     {
         // Create a new command.
         SQLiteCommand command = new("SELECT * FROM files WHERE id = @id;", Connection);
-
-        // Add the parameter.
         command.Parameters.AddWithValue("@id", id);
 
         using SQLiteDataReader reader = command.ExecuteReader();
@@ -57,11 +55,9 @@ public class Files : BaseHandler
         // Read the data.
         reader.Read();
         long fileId = reader.GetInt64(0);
-        DateTime added = reader.GetDateTime(1);
-        string filePath = reader.GetString(2);
 
         // Create a new file object and return it
-        return new File(fileId, added, filePath, HandlersGroup.Relations!.GetTags(fileId));
+        return new File(reader, HandlersGroup.Relations!.GetTags(fileId));
     }
 
 
@@ -98,5 +94,24 @@ public class Files : BaseHandler
         foreach (Tag tag in tags) HandlersGroup.Relations!.AddTag(newFile, tag);
 
         return newFile;
+    }
+
+    
+    /// <summary>
+    /// Edits the file in the database. Only really used for changing the path.
+    /// </summary>
+    /// <param name="file">Modified file object.</param>
+    /// <returns></returns>
+    public File Edit(File file)
+    {
+        // Create a new command.
+        SQLiteCommand command = new("UPDATE files SET path = @path WHERE id = @id;", Connection);
+        command.Parameters.AddWithValue("@path", file.Path);
+        command.Parameters.AddWithValue("@id", file.Id);
+        
+        // Execute the command.
+        command.ExecuteNonQuery();
+        
+        return Get(file.Id)!;
     }
 }
