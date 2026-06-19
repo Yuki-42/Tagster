@@ -1,13 +1,35 @@
-﻿using EchoLib.Configuration.Attributes;
+﻿using System.Text.Json;
+using EchoLib.Configuration.Attributes;
 
 namespace Api;
 
 public class Config
 {
+	public static JsonSerializerOptions JsonDefaultOptions { get; } = new(JsonSerializerDefaults.Web);
+	
+	/// <summary>
+	/// Explicit JSON serializer settings for absolute minified text.
+	/// </summary>
+	public static JsonSerializerOptions JsonMinOptions{get; } = new ()
+	{
+		WriteIndented = false,
+		AllowTrailingCommas = false
+	};
+	
 	[ConfigProperty]
 	public DatabaseModel Database { get; init; } = null!;
-
+	
+	[ConfigProperty]
+	public AuthRequirementsModel AuthRequirements { get; init; } = null!;
+	
 	#region ConfigModels
+
+	[ConfigModel]
+	public class AuthRequirementsModel
+	{
+		public required int PasswordLength { get; init; }
+		[ConfigSecret] public required string OtpSecret { get; init; }
+	}
 
 	[ConfigModel]
 	public class DatabaseModel

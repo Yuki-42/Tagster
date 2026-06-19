@@ -10,16 +10,16 @@ namespace Api.Filters;
 /// <summary>
 /// Ensures that a user attempting to access the endpoint has a valid API key and the API key is valid for this request.
 /// </summary>
-/// <param name="perms"></param>
+/// <param name="permissions">Permissions required to access this endpoint.</param>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncActionFilter
 {
 	/// <summary>
-	///
+	/// Checks for a valid API key in the request header and ensures it has the required permissions to access this endpoint. 
 	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="next"></param>
-	/// <returns></returns>
+	/// <param name="context">The action executing context.</param>
+	/// <param name="next">The action execution delegate.</param>
+	/// <returns>A task representing the asynchronous operation.</returns>
 	public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
 	{
 		// Try and retrieve API key from header

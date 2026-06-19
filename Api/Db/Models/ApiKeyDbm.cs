@@ -1,4 +1,7 @@
-﻿namespace Api.Db.Models;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace Api.Db.Models;
 
 
 /// <summary>
@@ -9,7 +12,7 @@ public class ApiKeyDbm : BaseDbm
 	/// <summary>
 	/// Signed key data issued to user as identifier.
 	/// </summary>
-	public required string KeyValue { get; init; }
+	public required string KeyValue { get; init; } 
 
 	// Encoded properties are properties of the API key that are included in the json string that is signed and issued.
 	#region Encoded Properties
@@ -45,6 +48,18 @@ public class ApiKeyDbm : BaseDbm
 	/// Friendly name for this API key used in the frontend for key management.
 	/// </summary>
 	public string? FriendlyName { get; init; }
+}
+
+public class InsertApiKeyDbm
+{
+	public required Guid UserId { get; init; }
+	public required DateTime ExpiresAt { get; init; }
+	public required ApiKeyPermissions Permissions { get; init; }
+	public required string UserAgent { get; init; }
+	
+	
+	public string FriendlyName { get; init; }
+
 }
 
 /// <summary>

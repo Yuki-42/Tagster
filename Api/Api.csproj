@@ -13,14 +13,10 @@
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0-preview.5.26302.115" />
         <PackageReference Include="Npgsql" Version="10.0.3" />
+        <PackageReference Include="Otp.NET" Version="1.4.1" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.2.1" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.1" />
         <PackageReference Include="System.Data.Common" Version="4.3.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Folder Include="Crypto\" />
-        <Folder Include="Dto\"/>
     </ItemGroup>
 
 </Project>

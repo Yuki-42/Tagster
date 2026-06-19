@@ -26,9 +26,9 @@ public class AuditLogDbm : BaseDbm
 	public required Guid RowId { get; init; }
 
 	/// <summary>
-	/// User performing action.
+	/// User performing action. Only used for authenticated actions.
 	/// </summary>
-	public required Guid UserId { get; init; }
+	public Guid UserId { get; init; }
 
 	/// <summary>
 	/// Previous row state dump (used for important data)
@@ -38,7 +38,7 @@ public class AuditLogDbm : BaseDbm
 	/// <summary>
 	/// If the action successfully went through, or was blocked/failed for any other reason.
 	/// </summary>
-	public bool? Affected { get; init; } = null;
+	public bool? Effected { get; init; } = null;
 }
 
 /// <summary>
