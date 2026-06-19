@@ -21,7 +21,12 @@ public interface IApiKeyRepo
 	/// <returns>Key DBM if found, null if none.</returns>
 	Task<ApiKeyDbm?> Get(Guid id);
 	
-	Task<ApiKeyDbm> Insert(ApiKey)
+	/// <summary>
+	/// Creates an API key registry in the database. 
+	/// </summary>
+	/// <param name="apiKey">The API key to create.</param>
+	/// <returns>The created API key.</returns>
+	Task<ApiKeyDbm> Insert(InsertApiKeyDbm apiKey);
 	
 	
 }
