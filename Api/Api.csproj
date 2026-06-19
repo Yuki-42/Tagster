@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Dapper" Version="2.1.79" />
+        <PackageReference Include="EchoLib.Configuration" Version="1.0.1-fix-001"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0-preview.5.26302.115" />
+        <PackageReference Include="Npgsql" Version="10.0.3" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.2.1" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.1" />
+        <PackageReference Include="System.Data.Common" Version="4.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Crypto\" />
+        <Folder Include="Dto\"/>
+    </ItemGroup>
+
+</Project>
