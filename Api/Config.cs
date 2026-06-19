@@ -3,6 +3,9 @@ using EchoLib.Configuration.Attributes;
 
 namespace Api;
 
+/// <summary>
+/// Application configuration information container.
+/// </summary>
 public class Config
 {
 	public static JsonSerializerOptions JsonDefaultOptions { get; } = new(JsonSerializerDefaults.Web);
@@ -29,6 +32,7 @@ public class Config
 	{
 		public required int PasswordLength { get; init; }
 		[ConfigSecret] public required string OtpSecret { get; init; }
+		public required int SessionLifeDays { get; init; }
 	}
 
 	[ConfigModel]
