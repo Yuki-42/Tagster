@@ -50,6 +50,9 @@ public class ApiKeyDbm : BaseDbm
 	public string? FriendlyName { get; init; }
 }
 
+/// <summary>
+/// Model used for adding API Keys to the database.
+/// </summary>
 public class InsertApiKeyDbm
 {
 	public required Guid UserId { get; init; }
@@ -92,4 +95,9 @@ public enum ApiKeyPermissions
 	/// Key can be used to delete files from disk. DANGEROUS.
 	/// </summary>
 	DeleteFile,
+	
+	/// <summary>
+	/// Admin role. Supersedes any other role checks. 
+	/// </summary>
+	Admin
 }

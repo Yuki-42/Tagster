@@ -102,11 +102,12 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
         ApiKeyDbm apiKey;
         try
         {
-            apiKey = await _apiKeys.Insert(new ApiKeyCreateDbm
+            apiKey = await _apiKeys.Insert(new InsertApiKeyDbm
             {
                 UserId = user.Id,
-                Name = "Session Key",
-                ExpiresAt = DateTime.UtcNow.AddDays(_config.AuthRequirements.SessionDurationDays)
+                ExpiresAt = DateTime.UtcNow.AddDays(_config.AuthRequirements.SessionLifeDays),
+                Permissions = ApiKeyPermissions.Admin,  // TODO: Something other than this. For now this can stay since we're only allowing the server owner to create accounts.
+                UserAgent = HttpContext.Request.Headers["User-Agent"],
             });
         }
         catch (Exception e)
@@ -115,7 +116,7 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
             return StatusCode(500, "An error occurred while creating the session.");
         }
         
-        return Ok(apiKey.Key);
+        return ;
     }
     
     
