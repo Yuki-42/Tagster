@@ -14,4 +14,9 @@ public class CreateSessionDto
     /// Password for associated account.
     /// </summary>
     public required string Password { get; init; }
+    
+    /// <summary>
+    /// Friendly name for the key/session.
+    /// </summary>
+    public string? SessionName {get; init;}
 }

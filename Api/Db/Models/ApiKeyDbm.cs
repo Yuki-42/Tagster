@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Api.Dto;
 
 namespace Api.Db.Models;
 
@@ -7,6 +8,7 @@ namespace Api.Db.Models;
 /// <summary>
 /// DBM for API key.
 /// </summary>
+[MappedObject(typeof(ApiKeyDbm), typeof(UpdateApiKeyDbm))]
 public class ApiKeyDbm : BaseDbm
 {
 	/// <summary>
@@ -48,6 +50,19 @@ public class ApiKeyDbm : BaseDbm
 	/// Friendly name for this API key used in the frontend for key management.
 	/// </summary>
 	public string? FriendlyName { get; init; }
+	
+	/// <summary>
+	/// If the API key is considered "active". Inactive keys are not deleted from the database but are ignored in
+	/// authentication flows.
+	/// </summary>
+	/// <remarks>
+	/// This was done to ensure relational information about the key is retained for potential use in security auditing
+	/// and breach investigations. Deleting the key would remove this information and make it more difficult to
+	/// investigate potential breaches.
+	///
+	/// Yes this is overkill for a fucking photo sharing app. Do I care? No.
+	/// </remarks>
+	public required bool IsActive {get; set; }
 }
 
 /// <summary>
@@ -60,9 +75,26 @@ public class InsertApiKeyDbm
 	public required ApiKeyPermissions Permissions { get; init; }
 	public required string UserAgent { get; init; }
 	
-	
-	public string FriendlyName { get; init; }
+	public string? FriendlyName { get; init; }
+}
 
+/// <summary>
+/// Model used for editing existing API keys.
+/// </summary>
+public class UpdateApiKeyDbm
+{
+	/// <summary>
+	/// Id of the key to edit.
+	/// </summary>
+	public required Guid Id { get; init; }
+	/// <summary>
+	/// Friendly name for the key.
+	/// </summary>
+	public string? FriendlyName {get; set; }
+	/// <summary>
+	/// If the key is active or not.
+	/// </summary>
+	public bool? IsActive { get; set; }
 }
 
 /// <summary>

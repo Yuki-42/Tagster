@@ -1,5 +1,9 @@
+using System.Buffers.Text;
+using System.Text;
+using System.Text.Json;
 using Api.Db.Models;
 using Api.Db.Repos;
+using Api.Dto;
 using Api.Dto.Auth;
 using Api.Filters;
 using Microsoft.AspNetCore.Identity;
@@ -18,9 +22,9 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
     private Config _config = diConfig;
     private IUsersRepo _users = diUsersRepo;
     private IApiKeyRepo _apiKeys = diApiKeysRepo;
-    
+
     private Totp _totp = new Totp(Base32Encoding.ToBytes(diConfig.AuthRequirements.OtpSecret));
-    
+
     /// <summary>
     /// Allows a user to sign up for a media account. Currently only included to allow server owner to
     /// create an account, but may be expanded in the future to allow anyone to create an account. For now,
@@ -34,23 +38,23 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
         {
             return BadRequest($"Password must be at least {_config.AuthRequirements.PasswordLength} characters long.");
         }
-        
+
         // Check submitted OTP against config bound OTP secret
         if (!_totp.VerifyTotp(dto.OwnerOtp, out _))
             return BadRequest("Invalid OTP.");
-        
+
         // Check if the email is already in use
-        if (await _users.Get(dto.Email) is not null) 
+        if (await _users.Get(dto.Email) is not null)
             return BadRequest("Email already in use.");
-        
+
         // We've verified that the user attempting to create the account is the server-owner
         // We can safely create the account in the DB now
         PasswordHasher<string> hasher = new(
             new OptionsWrapper<PasswordHasherOptions>(
-                new PasswordHasherOptions {CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3}
-                )
-            );
-        
+                new PasswordHasherOptions { CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3 }
+            )
+        );
+
         string hashed = hasher.HashPassword(dto.Email, dto.Password);
 
         UserDbm newUser;
@@ -68,10 +72,10 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
             // Something has gone wrong in the database, return server error
             return StatusCode(500, "An error occurred while creating the account.");
         }
-        
+
         return Ok(newUser);
     }
-    
+
     /// <summary>
     /// Create a new session-associated API key. (i.e. log in). 
     /// </summary>
@@ -86,18 +90,18 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
         UserDbm? user = await _users.Get(dto.Email);
         if (user is null)
             return BadRequest("Invalid email or password.");
-        
+
         // Next, verify the password
         PasswordHasher<string> hasher = new(
             new OptionsWrapper<PasswordHasherOptions>(
-                new PasswordHasherOptions {CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3}
+                new PasswordHasherOptions { CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3 }
             )
         );
-        
+
         PasswordVerificationResult result = hasher.VerifyHashedPassword(dto.Email, user.Password, dto.Password);
         if (result == PasswordVerificationResult.Failed)
             return BadRequest("Invalid email or password.");
-        
+
         // If we get here, the credentials are valid. Create a new API key for the user and return it.
         ApiKeyDbm apiKey;
         try
@@ -106,7 +110,9 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
             {
                 UserId = user.Id,
                 ExpiresAt = DateTime.UtcNow.AddDays(_config.AuthRequirements.SessionLifeDays),
-                Permissions = ApiKeyPermissions.Admin,  // TODO: Something other than this. For now this can stay since we're only allowing the server owner to create accounts.
+                Permissions =
+                    ApiKeyPermissions
+                        .Admin, // TODO: Something other than this. For now this can stay since we're only allowing the server owner to create accounts.
                 UserAgent = HttpContext.Request.Headers["User-Agent"],
             });
         }
@@ -115,9 +121,9 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
             // Something has gone wrong in the database, return server error
             return StatusCode(500, "An error occurred while creating the session.");
         }
-        
-        return ;
+
+        return Convert.ToBase64String(
+            Encoding.UTF8.GetBytes(JsonSerializer.Serialize(DtoMapper.Map<ApiKeyDbm, ApiKeyDto>(apiKey)))
+            );
     }
-    
-    
 }

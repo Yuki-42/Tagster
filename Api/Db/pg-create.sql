@@ -30,7 +30,19 @@ CREATE TABLE audit.log (
     row_id uuid NOT NULL,
     user_id uuid,
     previous_state jsonb,
-    effected bool
+    effected bool,
+    comment text
+);
+
+CREATE TABLE public.users (
+    id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+    username TEXT NOT NULL, 
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL 
+);
+
+CREATE TABLE public.api_keys (
+    
 );
 
 CREATE TABLE public.tags (

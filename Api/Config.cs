@@ -1,12 +1,13 @@
 ﻿using System.Text.Json;
 using EchoLib.Configuration.Attributes;
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace Api;
 
 /// <summary>
 /// Application configuration information container.
 /// </summary>
-public abstract class Config
+public class Config
 {
 	/// <summary>
 	/// Default JSON serializer settings.
@@ -40,7 +41,7 @@ public abstract class Config
 	/// Authentication and crypto related configuration model.
 	/// </summary>
 	[ConfigModel]
-	public abstract class AuthRequirementsModel
+	public class AuthRequirementsModel
 	{
 		/// <summary>
 		/// Minimum account password length. 
@@ -60,7 +61,7 @@ public abstract class Config
 	/// Database configuration model.
 	/// </summary>
 	[ConfigModel]
-	public abstract class DatabaseModel
+	public class DatabaseModel
 	{
 		/// <summary>
 		/// Database IP/resolvable hostname.
@@ -88,7 +89,7 @@ public abstract class Config
 	/// Specific credentials pair for database server. Tied to specific use case.
 	/// </summary>
 	[ConfigModel]
-	public abstract class CredentialSet
+	public class CredentialSet
 	{
 		/// <summary>
 		/// Account/role username.

@@ -4,6 +4,7 @@ using Api.Db.Repos;
 using Api.Db.Repos.Impml;
 using EchoLib.Configuration;
 using Microsoft.OpenApi;
+using OtpNet;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 

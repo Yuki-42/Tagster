@@ -39,6 +39,11 @@ public class AuditLogDbm : BaseDbm
 	/// If the action successfully went through, or was blocked/failed for any other reason.
 	/// </summary>
 	public bool? Effected { get; init; } = null;
+	
+	/// <summary>
+	/// Additional information regarding the event.
+	/// </summary>
+	public string? Comment { get; init; } = null;
 }
 
 /// <summary>
@@ -75,6 +80,11 @@ public class CreateAuditLogDbo
 	/// If the action successfully went through, or was blocked/failed for any other reason.
 	/// </summary>
 	public bool? Affected { get; init; } = null;
+	
+	/// <summary>
+	/// Additional information regarding the event.
+	/// </summary>
+	public string? Comment { get; init; } = null;
 }
 
 /// <summary>
