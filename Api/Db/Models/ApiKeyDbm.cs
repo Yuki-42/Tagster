@@ -4,7 +4,6 @@ using Api.Dto;
 
 namespace Api.Db.Models;
 
-
 /// <summary>
 /// DBM for API key.
 /// </summary>
@@ -14,9 +13,10 @@ public class ApiKeyDbm : BaseDbm
 	/// <summary>
 	/// Signed key data issued to user as identifier.
 	/// </summary>
-	public required string KeyValue { get; init; } 
+	public required string KeyValue { get; init; }
 
 	// Encoded properties are properties of the API key that are included in the json string that is signed and issued.
+
 	#region Encoded Properties
 
 	/// <summary>
@@ -40,6 +40,11 @@ public class ApiKeyDbm : BaseDbm
 	public required string UserAgent { get; init; }
 
 	/// <summary>
+	/// IP Address associated with this API key.
+	/// </summary>
+	public required string IpAddress { get; init; }
+
+	/// <summary>
 	/// Api permissions flags.
 	/// </summary>
 	public required ApiKeyPermissions Permissions { get; set; }
@@ -50,7 +55,7 @@ public class ApiKeyDbm : BaseDbm
 	/// Friendly name for this API key used in the frontend for key management.
 	/// </summary>
 	public string? FriendlyName { get; init; }
-	
+
 	/// <summary>
 	/// If the API key is considered "active". Inactive keys are not deleted from the database but are ignored in
 	/// authentication flows.
@@ -62,7 +67,7 @@ public class ApiKeyDbm : BaseDbm
 	///
 	/// Yes this is overkill for a fucking photo sharing app. Do I care? No.
 	/// </remarks>
-	public required bool IsActive {get; set; }
+	public required bool IsActive { get; set; }
 }
 
 /// <summary>
@@ -70,11 +75,25 @@ public class ApiKeyDbm : BaseDbm
 /// </summary>
 public class InsertApiKeyDbm
 {
+	/// <inheritdoc cref="ApiKeyDbm"/>
 	public required Guid UserId { get; init; }
-	public required DateTime ExpiresAt { get; init; }
+
+	/// <inheritdoc cref="ApiKeyDbm"/>
+	public DateTime Issued { get; } = DateTime.Now;
+
+	/// <inheritdoc cref="ApiKeyDbm"/>
+	public required DateTime Expires { get; init; }
+
+	/// <inheritdoc cref="ApiKeyDbm" />
 	public required ApiKeyPermissions Permissions { get; init; }
+
+	/// <inheritdoc cref="ApiKeyDbm"/>
 	public required string UserAgent { get; init; }
-	
+
+	/// <inheritdoc cref="ApiKeyDbm"/>
+	public required string IpAddress { get; init; }
+
+	/// <inheritdoc cref="ApiKeyDbm"/>
 	public string? FriendlyName { get; init; }
 }
 
@@ -87,10 +106,12 @@ public class UpdateApiKeyDbm
 	/// Id of the key to edit.
 	/// </summary>
 	public required Guid Id { get; init; }
+
 	/// <summary>
 	/// Friendly name for the key.
 	/// </summary>
-	public string? FriendlyName {get; set; }
+	public string? FriendlyName { get; set; }
+
 	/// <summary>
 	/// If the key is active or not.
 	/// </summary>
@@ -127,7 +148,7 @@ public enum ApiKeyPermissions
 	/// Key can be used to delete files from disk. DANGEROUS.
 	/// </summary>
 	DeleteFile,
-	
+
 	/// <summary>
 	/// Admin role. Supersedes any other role checks. 
 	/// </summary>

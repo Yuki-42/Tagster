@@ -21,14 +21,16 @@ builder.Services.AddControllers();
 
 // Add database
 builder.Services.AddScoped<IDbConnectionProvider, PgDbConnectionProvider>();
-builder.Services.AddScoped<IMediaRepo, PgMediaRepo>();
+builder.Services.AddScoped<IAuditLogsRepo, PgAuditLogsRepo>();
+builder.Services.AddScoped<IApiKeyRepo, PgApiKeyRepo>();
+builder.Services.AddScoped<IUsersRepo, PgUsersRepo>();
 
 // Add api explorer and swagger ect
 string docsFile = Path.Combine(AppContext.BaseDirectory, "Api.xml");
 
 builder.Services.AddSwaggerGen(options =>
 {
-	options.SwaggerDoc("v1", new OpenApiInfo {Title = "Tagster API", Version = "v1"});
+	options.SwaggerDoc("v1", new OpenApiInfo { Title = "Tagster API", Version = "v1" });
 	options.IncludeXmlComments(docsFile);
 
 	options.AddSecurityDefinition("key", new OpenApiSecurityScheme
@@ -52,7 +54,7 @@ if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();
 	app.UseSwaggerUI();
-};
+}
 
 app.UseHttpsRedirection();
 

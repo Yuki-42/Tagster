@@ -7,7 +7,10 @@
             "launchBrowser": false,
             "applicationUrl": "http://localhost:5158",
             "environmentVariables": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "DATABASE_CREDENTIALS_MAIN_PASSWORD": "giYr3vRVvaX4GUzxjmW4aF8ciJFNq8yHpxVNqyGmZwUjJfFUsuYoybvJciEoe9rNtGieZNcTjB3wqnVidcfWWRTDUTGsJCnkLwdL",
+                "DATABASE_CREDENTIALS_AUDIT_PASSWORD": "9ATs8v6dVHWiAbeTt23nEkiz69RVUsWrb2wVK6sN7RRBihhEJyzvN2T98zj3MiPdkEuta9AKqWUxQEeu3tRxbNX2jPAC8xRPWokN",
+                "AUTHREQUIREMENTS_OTPSECRET": "5DTCMB57BSRRB7RP3TEUKTEDBZ6Y3HDG7HRSKSOMR2MZFJAZHHOVKXFPIQ4B6OA6MUCXZ22IDRIZ36226MUB2U55UFTNWCVW4XECIWY"
             }
         },
         "https": {
@@ -16,7 +19,10 @@
             "launchBrowser": false,
             "applicationUrl": "https://localhost:7214;http://localhost:5158",
             "environmentVariables": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "DATABASE_CREDENTIALS_MAIN_PASSWORD": "giYr3vRVvaX4GUzxjmW4aF8ciJFNq8yHpxVNqyGmZwUjJfFUsuYoybvJciEoe9rNtGieZNcTjB3wqnVidcfWWRTDUTGsJCnkLwdL",
+                "DATABASE_CREDENTIALS_AUDIT_PASSWORD": "9ATs8v6dVHWiAbeTt23nEkiz69RVUsWrb2wVK6sN7RRBihhEJyzvN2T98zj3MiPdkEuta9AKqWUxQEeu3tRxbNX2jPAC8xRPWokN",
+                "AUTHREQUIREMENTS_OTPSECRET": "5DTCMB57BSRRB7RP3TEUKTEDBZ6Y3HDG7HRSKSOMR2MZFJAZHHOVKXFPIQ4B6OA6MUCXZ22IDRIZ36226MUB2U55UFTNWCVW4XECIWY"
             }
         }
     }

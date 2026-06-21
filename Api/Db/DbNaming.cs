@@ -1,8 +1,11 @@
-﻿namespace Api.Db;
+﻿using System.Data.Common;
+using NpgsqlTypes;
 
-internal static class DbNaming
+namespace Api.Db;
+
+internal static class DbHelpers
 {
-	public static readonly string TblAuditLogs = "AuditLogs";
-	public static readonly string TblUsers = "Users";
-	public static readonly string TblApiKeys = "ApiKeys";
+	public const string TblAuditLogs = "audit.log";
+	public const string TblUsers = "public.users";
+	public const string TblApiKeys = "public.api_keys";
 }

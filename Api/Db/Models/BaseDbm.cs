@@ -1,6 +1,5 @@
 ﻿namespace Api.Db.Models;
 
-
 /// <summary>
 /// Base database model inherited by all database models.
 /// </summary>

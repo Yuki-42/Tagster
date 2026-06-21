@@ -14,7 +14,7 @@ public interface IApiKeyRepo
 	/// <param name="includeInactive">Whether to include inactive keys in the query. Default is false.</param>
 	/// <returns>Key DBM if found, null if none.</returns>
 	Task<ApiKeyDbm?> Get(string keyValue, bool includeInactive = false);
-	
+
 	/// <summary>
 	/// Get API key by ID.
 	/// </summary>
@@ -22,20 +22,18 @@ public interface IApiKeyRepo
 	/// <param name="includeInactive">Whether to include inactive keys in the query. Default is false.</param>
 	/// <returns>Key DBM if found, null if none.</returns>
 	Task<ApiKeyDbm?> Get(Guid id, bool includeInactive = false);
-	
+
 	/// <summary>
 	/// Creates an API key registry in the database. 
 	/// </summary>
-	/// <param name="apiKey">The API key to create.</param>
+	/// <param name="ob">The API key to create.</param>
 	/// <returns>The created API key.</returns>
-	Task<ApiKeyDbm> Insert(InsertApiKeyDbm apiKey);
-	
+	Task<ApiKeyDbm> Insert(InsertApiKeyDbm ob);
+
 	/// <summary>
 	/// Updates an existing API key.
 	/// </summary>
-	/// <param name="apiKey">Api key with updated fields.</param>
+	/// <param name="ob">Api key with updated fields.</param>
 	/// <returns>Updated API key model.</returns>
-	Task<ApiKeyDbm> Update(UpdateApiKeyDbm apiKey);
-	
-	
+	Task<ApiKeyDbm> Update(UpdateApiKeyDbm ob);
 }

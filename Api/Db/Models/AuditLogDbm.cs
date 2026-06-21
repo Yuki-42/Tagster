@@ -39,7 +39,7 @@ public class AuditLogDbm : BaseDbm
 	/// If the action successfully went through, or was blocked/failed for any other reason.
 	/// </summary>
 	public bool? Effected { get; init; } = null;
-	
+
 	/// <summary>
 	/// Additional information regarding the event.
 	/// </summary>
@@ -55,6 +55,11 @@ public class CreateAuditLogDbo
 	/// Effected table name.
 	/// </summary>
 	public required string TableName { get; init; }
+
+	/// <summary>
+	/// Timestamp this audit log entry was created.
+	/// </summary>
+	public DateTime Timestamp { get; } = DateTime.Now;
 
 	/// <summary>
 	/// Type of action performed.
@@ -79,8 +84,8 @@ public class CreateAuditLogDbo
 	/// <summary>
 	/// If the action successfully went through, or was blocked/failed for any other reason.
 	/// </summary>
-	public bool? Affected { get; init; } = null;
-	
+	public bool? Effected { get; init; } = null;
+
 	/// <summary>
 	/// Additional information regarding the event.
 	/// </summary>
