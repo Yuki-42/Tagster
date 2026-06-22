@@ -4,7 +4,6 @@ using Api.Dto;
 using Api.Dto.Media;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 
 namespace Api.Controllers;
 
@@ -66,6 +65,10 @@ public class MediaController : ControllerBase
 		return tagDbms.Select(DtoMapper.Map<TagDbm, TagDto>).ToList();
 	}
 
+	/// <summary>
+	/// Creates a new tag.
+	/// </summary>
+	/// <param name="dto">Information required to create a tag.</param>
 	[HttpPost("/tags")]
 	public async Task<ActionResult<TagDto>> CreateTag([FromBody] CreateTagDto dto)
 	{
