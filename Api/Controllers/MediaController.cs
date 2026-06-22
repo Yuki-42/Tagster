@@ -2,7 +2,7 @@
 using Api.Db.Repos;
 using Api.Dto;
 using Api.Dto.Media;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Api.Filters;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
@@ -69,6 +69,7 @@ public class MediaController : ControllerBase
 	/// Creates a new tag.
 	/// </summary>
 	/// <param name="dto">Information required to create a tag.</param>
+	[ApiKey(ApiKeyPermissions.CreateTag)]
 	[HttpPost("/tags")]
 	public async Task<ActionResult<TagDto>> CreateTag([FromBody] CreateTagDto dto)
 	{

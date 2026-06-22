@@ -130,6 +130,21 @@ public class UpdateApiKeyDbm
 public enum ApiKeyPermissions
 {
 	/// <summary>
+	/// Key can be used to create tags.
+	/// </summary>
+	CreateTag,
+
+	/// <summary>
+	/// Key can be used to edit tags.
+	/// </summary>
+	EditTag,
+
+	/// <summary>
+	/// Key can be used to delete tags.
+	/// </summary>
+	DeleteTag,
+
+	/// <summary>
 	/// Key can be used to upload individual files.
 	/// </summary>
 	UploadFile,
