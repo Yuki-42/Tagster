@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Api;
 using Api.Db;
 using Api.Db.Repos;
@@ -10,10 +11,15 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Build config (in multiple steps for debugging)
 IConfiguration configProvider = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddIniFile("secrets.ini").Build();
-
 Config config = ConfigBuilder.Build<Config>(configProvider);
-
 builder.Services.AddSingleton(config);
+
+// Check if the path specified for RSA private key is present, if not, generate one
+FileInfo keyFile = new(config.AuthRequirements.RsaPrivateKeyPath);
+if (!keyFile.Exists)
+{
+	File.WriteAllText(keyFile.FullName, RSA.Create().ExportRSAPrivateKeyPem());
+}
 
 // Add controllers
 builder.Services.AddControllers();

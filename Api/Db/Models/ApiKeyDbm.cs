@@ -1,6 +1,9 @@
-﻿using System.Text.Json;
+﻿using System.Security.Cryptography.Xml;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Api.Dto;
+using Api.Dto.Auth;
 
 namespace Api.Db.Models;
 
@@ -15,14 +18,15 @@ public class ApiKeyDbm : BaseDbm
 	/// </summary>
 	public required string KeyValue { get; init; }
 
-	// Encoded properties are properties of the API key that are included in the json string that is signed and issued.
-
-	#region Encoded Properties
-
 	/// <summary>
 	/// ID of the user this API key belongs to.
 	/// </summary>
 	public required Guid UserId { get; init; }
+
+	/// <summary>
+	/// Signature of
+	/// </summary>
+	public required string Signature { get; init; }
 
 	/// <summary>
 	/// Timestamp this key was issued at.
@@ -47,9 +51,7 @@ public class ApiKeyDbm : BaseDbm
 	/// <summary>
 	/// Api permissions flags.
 	/// </summary>
-	public required ApiKeyPermissions Permissions { get; set; }
-
-	#endregion
+	public required ApiKeyPermissions Permissions { get; init; }
 
 	/// <summary>
 	/// Friendly name for this API key used in the frontend for key management.
@@ -76,10 +78,13 @@ public class ApiKeyDbm : BaseDbm
 public class InsertApiKeyDbm
 {
 	/// <inheritdoc cref="ApiKeyDbm"/>
+	public required string KeyValue { get; init; }
+
+	/// <inheritdoc cref="ApiKeyDbm"/>
 	public required Guid UserId { get; init; }
 
 	/// <inheritdoc cref="ApiKeyDbm"/>
-	public DateTime Issued { get; } = DateTime.Now;
+	public required DateTime Issued { get; init; }
 
 	/// <inheritdoc cref="ApiKeyDbm"/>
 	public required DateTime Expires { get; init; }

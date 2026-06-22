@@ -13,8 +13,19 @@ public class ApiKeyDto
 	/// </summary>
 	public required string Signature { get; init; }
 
+	#region Presign Encoded Properties
+
+	/// <summary>
+	/// Timestamp of API key issuance.
+	/// </summary>
 	public required DateTime Issued { get; init; }
+
+	/// <summary>
+	/// API key expiry timestamp.
+	/// </summary>
 	public required DateTime Expires { get; init; }
+
+	#endregion
 
 	/// <summary>
 	/// User-defined alias for the key. 

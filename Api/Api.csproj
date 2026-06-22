@@ -10,7 +10,7 @@
     <ItemGroup>
         <PackageReference Include="Dapper" Version="2.1.79"/>
         <PackageReference Include="Dapper.SqlBuilder" Version="2.1.66"/>
-        <PackageReference Include="EchoLib.Configuration" Version="1.0.1-fix-001"/>
+        <PackageReference Include="EchoLib.Configuration" Version="1.2.0-unstable" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3"/>
         <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="11.0.0-preview.5.26302.115"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0-preview.5.26302.115"/>
@@ -23,8 +23,12 @@
 
     <ItemGroup>
         <None Update="secrets.ini">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="keys\" />
     </ItemGroup>
 
 </Project>

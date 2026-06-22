@@ -1,5 +1,4 @@
-using System.Buffers.Text;
-using System.Text;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Api.Db.Models;
 using Api.Db.Repos;
@@ -17,13 +16,44 @@ namespace Api.Controllers;
 /// Controls user authentication. 
 /// </summary>
 [ApiController]
-public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo diApiKeysRepo) : ControllerBase
+public class AuthController : ControllerBase
 {
-	private Config _config = diConfig;
-	private IUsersRepo _users = diUsersRepo;
-	private IApiKeyRepo _apiKeys = diApiKeysRepo;
+	private readonly ILogger<AuthController> _logger;
+	private readonly Config _config;
 
-	private Totp _totp = new(Base32Encoding.ToBytes(diConfig.AuthRequirements.OtpSecret));
+	// Repos
+	private readonly IUsersRepo _users;
+	private readonly IApiKeyRepo _apiKeys;
+
+	// Crypto
+	private readonly Totp _totp;
+	private readonly RSA _rsa;
+
+	/// <summary>
+	/// Initialize a new Auth Controller.
+	/// </summary>
+	/// <param name="logger">DI	provided.</param>
+	/// <param name="config">DI	provided.</param>
+	/// <param name="users">DI provided.</param>
+	/// <param name="apiKeys">DI provided.</param>
+	public AuthController(
+		ILogger<AuthController> logger,
+		Config config,
+		IUsersRepo users,
+		IApiKeyRepo apiKeys
+	)
+	{
+		_logger = logger;
+		_config = config;
+		_users = users;
+		_apiKeys = apiKeys;
+
+		_totp = new Totp(Base32Encoding.ToBytes(config.AuthRequirements.OtpSecret));
+
+		// RSA initialization is a little more complicated
+		_rsa = RSA.Create();
+		_rsa.ImportFromPem(config.AuthRequirements.RsaPrivateKey);
+	}
 
 	/// <summary>
 	/// Allows a user to sign up for a media account. Currently only included to allow server owner to
@@ -68,6 +98,8 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
 		}
 		catch (Exception e)
 		{
+			_logger.LogError("Exception in Auth.Signup\n {Message}", e.ToString());
+
 			// Something has gone wrong in the database, return server error
 			return StatusCode(500, "An error occurred while creating the account.");
 		}
@@ -101,14 +133,27 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
 		if (result == PasswordVerificationResult.Failed)
 			return BadRequest("Invalid email or password.");
 
+		// Build API key primitive
+		DateTime issued = DateTime.Now;
+		DateTime expires = DateTime.UtcNow.AddDays(_config.AuthRequirements.SessionLifeDays);
+
+		// Calculate signature
+		string signature = Convert.ToBase64String(
+			_rsa.SignData(
+				JsonSerializer.SerializeToUtf8Bytes(new { Issued = issued, Expires = expires }),
+				HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1
+			));
+
 		// If we get here, the credentials are valid. Create a new API key for the user and return it.
 		ApiKeyDbm apiKey;
 		try
 		{
 			apiKey = await _apiKeys.Insert(new InsertApiKeyDbm
 			{
+				KeyValue = signature,
 				UserId = user.Id,
-				Expires = DateTime.UtcNow.AddDays(_config.AuthRequirements.SessionLifeDays),
+				Issued = issued,
+				Expires = expires,
 				Permissions =
 					ApiKeyPermissions
 						.Admin, // TODO: Something other than this. For now this can stay since we're only allowing the server owner to create accounts.
@@ -118,12 +163,11 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
 		}
 		catch (Exception e)
 		{
+			_logger.LogError("Error occured in Auth.Signin \n {Message}", e.ToString());
 			// Something has gone wrong in the database, return server error
 			return StatusCode(500, "An error occurred while creating the session.");
 		}
 
-		return Convert.ToBase64String(
-			Encoding.UTF8.GetBytes(JsonSerializer.Serialize(DtoMapper.Map<ApiKeyDbm, ApiKeyDto>(apiKey)))
-		);
+		return DtoMapper.Map<ApiKeyDbm, ApiKeyDto>(apiKey).ToString();
 	}
 }

@@ -22,7 +22,8 @@ public class PgUsersRepo(IDbConnectionProvider con) : IUsersRepo
 		// Create command
 		const string cmd = "SELECT * FROM public.users WHERE email = @Email";
 
-		return await db.QueryFirstOrDefaultAsync<UserDbm>(cmd, new {
+		return await db.QueryFirstOrDefaultAsync<UserDbm>(cmd, new
+		{
 			Email = email
 		});
 	}
