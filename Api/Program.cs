@@ -29,6 +29,7 @@ builder.Services.AddScoped<IDbConnectionProvider, PgDbConnectionProvider>();
 builder.Services.AddScoped<IAuditLogRepo, PgAuditLogRepo>();
 builder.Services.AddScoped<IApiKeyRepo, PgApiKeyRepo>();
 builder.Services.AddScoped<IUserRepo, PgUserRepo>();
+builder.Services.AddScoped<ITagRepo, PgTagRepo>();
 
 // Add api explorer and swagger ect
 string docsFile = Path.Combine(AppContext.BaseDirectory, "Api.xml");
