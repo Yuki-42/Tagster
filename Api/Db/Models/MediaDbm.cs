@@ -1,36 +1,37 @@
-﻿namespace Api.Db.Models;
+﻿using Api.Dto.Media;
 
-public class MediaDbm : BaseDbm
-{
-	public required string OriginalName { get; init; }
-	public required FileType FileType { get; init; }
-	public required long Size { get; init; }
-	public MediaDimensions? Dimensions { get; init; }
-}
-
-public record MediaDimensions
-{
-	public required int Width { get; init; }
-	public required int Height { get; init; }
-}
+namespace Api.Db.Models;
 
 /// <summary>
-/// Basic file type.
+/// Database model for a media entity.
 /// </summary>
-public enum FileType
+public class MediaDbm : BaseDbm
 {
-	/// <summary>
-	/// Web-renderable image file type.
-	/// </summary>
-	Image,
+	/// <inheritdoc cref="MediaDto.MediaType"/>
+	public required MediaType FileType { get; init; }
 
-	/// <summary>
-	/// Web-renderable video file type.
-	/// </summary>
-	Video,
+	/// <inheritdoc cref="MediaDto.Captured"/>
+	public required DateOnly Captured { get; init; }
 
-	/// <summary>
-	/// Generic/catchall binary file type.
-	/// </summary>
-	Binary
+	/// <inheritdoc cref="MediaDto.TimeCaptured"/>
+	public TimeOnly? TimeCaptured { get; init; }
+
+	/// <inheritdoc cref="MediaDto.MediaType"/>
+	public required MediaType MediaType { get; init; }
+
+	#region Encoded In MediaFileInfo
+
+	/// <inheritdoc cref="MediaFileInfo.OriginalName"/>
+	public required string OriginalName { get; init; }
+
+	/// <inheritdoc cref="MediaFileInfo.Width"/>
+	public required int Width { get; init; }
+
+	/// <inheritdoc cref="MediaFileInfo.Height"/>
+	public required int Height { get; init; }
+
+	/// <inheritdoc cref="MediaFileInfo.FileSize"/>
+	public required ulong FileSize { get; init; }
+
+	#endregion
 }

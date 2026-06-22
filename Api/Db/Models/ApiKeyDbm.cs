@@ -10,7 +10,7 @@ namespace Api.Db.Models;
 /// <summary>
 /// DBM for API key.
 /// </summary>
-[MappedObject(typeof(ApiKeyDbm), typeof(UpdateApiKeyDbm))]
+[MappedObject(typeof(UpdateApiKeyDbm))]
 public class ApiKeyDbm : BaseDbm
 {
 	/// <summary>

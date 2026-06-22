@@ -47,7 +47,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 
 		// Get api keys repo
 		IApiKeyRepo keyRepo = context.HttpContext.RequestServices.GetRequiredService<IApiKeyRepo>();
-		IAuditLogsRepo logRepo = context.HttpContext.RequestServices.GetRequiredService<IAuditLogsRepo>();
+		IAuditLogRepo logRepo = context.HttpContext.RequestServices.GetRequiredService<IAuditLogRepo>();
 
 		ApiKeyDbm? dbKey = await keyRepo.Get(netKey.Signature);
 

@@ -8,6 +8,7 @@ using Api.Filters;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using OtpNet;
 
 namespace Api.Controllers;
@@ -22,7 +23,7 @@ public class AuthController : ControllerBase
 	private readonly Config _config;
 
 	// Repos
-	private readonly IUsersRepo _users;
+	private readonly IUserRepo _user;
 	private readonly IApiKeyRepo _apiKeys;
 
 	// Crypto
@@ -34,18 +35,18 @@ public class AuthController : ControllerBase
 	/// </summary>
 	/// <param name="logger">DI	provided.</param>
 	/// <param name="config">DI	provided.</param>
-	/// <param name="users">DI provided.</param>
+	/// <param name="user">DI provided.</param>
 	/// <param name="apiKeys">DI provided.</param>
 	public AuthController(
 		ILogger<AuthController> logger,
 		Config config,
-		IUsersRepo users,
+		IUserRepo user,
 		IApiKeyRepo apiKeys
 	)
 	{
 		_logger = logger;
 		_config = config;
-		_users = users;
+		_user = user;
 		_apiKeys = apiKeys;
 
 		_totp = new Totp(Base32Encoding.ToBytes(config.AuthRequirements.OtpSecret));
@@ -70,10 +71,12 @@ public class AuthController : ControllerBase
 
 		// Check submitted OTP against config bound OTP secret
 		if (!_totp.VerifyTotp(dto.OwnerOtp, out _))
-			return BadRequest("Invalid OTP.");
+			return Unauthorized("Invalid OTP.");
 
 		// Check if the email is already in use
-		if (await _users.Get(dto.Email) is not null)
+		UserDbm? user = await _user.Get(dto.Email);
+
+		if (user is not null)
 			return BadRequest("Email already in use.");
 
 		// We've verified that the user attempting to create the account is the server-owner
@@ -86,25 +89,14 @@ public class AuthController : ControllerBase
 
 		string hashed = hasher.HashPassword(dto.Email, dto.Password);
 
-		UserDbm newUser;
-		try
+		user = await _user.Insert(new InsertUserDbm
 		{
-			newUser = await _users.Insert(new InsertUserDbm
-			{
-				Email = dto.Email,
-				Username = dto.Username,
-				Password = hashed
-			});
-		}
-		catch (Exception e)
-		{
-			_logger.LogError("Exception in Auth.Signup\n {Message}", e.ToString());
+			Email = dto.Email,
+			Username = dto.Username,
+			Password = hashed
+		});
 
-			// Something has gone wrong in the database, return server error
-			return StatusCode(500, "An error occurred while creating the account.");
-		}
-
-		return Ok(newUser);
+		return DtoMapper.Map<UserDbm, UserDto>(user);
 	}
 
 	/// <summary>
@@ -118,7 +110,8 @@ public class AuthController : ControllerBase
 	public async Task<ActionResult<string>> CreateSession([FromBody] CreateSessionDto dto)
 	{
 		// First, find the user by email
-		UserDbm? user = await _users.Get(dto.Email);
+		UserDbm? user = await _user.Get(dto.Email);
+
 		if (user is null)
 			return BadRequest("Invalid email or password.");
 
@@ -145,10 +138,7 @@ public class AuthController : ControllerBase
 			));
 
 		// If we get here, the credentials are valid. Create a new API key for the user and return it.
-		ApiKeyDbm apiKey;
-		try
-		{
-			apiKey = await _apiKeys.Insert(new InsertApiKeyDbm
+		ApiKeyDbm apiKey = await _apiKeys.Insert(new InsertApiKeyDbm
 			{
 				KeyValue = signature,
 				UserId = user.Id,
@@ -160,13 +150,6 @@ public class AuthController : ControllerBase
 				UserAgent = HttpContext.Request.Headers.UserAgent!,
 				IpAddress = HttpContext.Request.HttpContext.Connection.RemoteIpAddress!.ToString()
 			});
-		}
-		catch (Exception e)
-		{
-			_logger.LogError("Error occured in Auth.Signin \n {Message}", e.ToString());
-			// Something has gone wrong in the database, return server error
-			return StatusCode(500, "An error occurred while creating the session.");
-		}
 
 		return DtoMapper.Map<ApiKeyDbm, ApiKeyDto>(apiKey).ToString();
 	}

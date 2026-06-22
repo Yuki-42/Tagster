@@ -6,7 +6,7 @@ using NpgsqlTypes;
 namespace Api.Db.Repos.Impml;
 
 /// <inheritdoc />
-public class PgAuditLogsRepo(IDbConnectionProvider con) : IAuditLogsRepo
+public class PgAuditLogRepo(IDbConnectionProvider con) : IAuditLogRepo
 {
 	/// <inheritdoc />
 	public async Task<AuditLogDbm> Create(CreateAuditLogDbo ob)

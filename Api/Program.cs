@@ -26,9 +26,9 @@ builder.Services.AddControllers();
 
 // Add database
 builder.Services.AddScoped<IDbConnectionProvider, PgDbConnectionProvider>();
-builder.Services.AddScoped<IAuditLogsRepo, PgAuditLogsRepo>();
+builder.Services.AddScoped<IAuditLogRepo, PgAuditLogRepo>();
 builder.Services.AddScoped<IApiKeyRepo, PgApiKeyRepo>();
-builder.Services.AddScoped<IUsersRepo, PgUsersRepo>();
+builder.Services.AddScoped<IUserRepo, PgUserRepo>();
 
 // Add api explorer and swagger ect
 string docsFile = Path.Combine(AppContext.BaseDirectory, "Api.xml");
@@ -61,6 +61,7 @@ if (app.Environment.IsDevelopment())
 	app.UseSwaggerUI();
 }
 
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseHttpsRedirection();
 
 app.UseAuthorization();

@@ -5,10 +5,13 @@ using System.Reflection;
 
 namespace Api.Dto;
 
+/// <summary>
+/// Mapping helper used to abstract mapping code from core logic.
+/// </summary>
 public static class DtoMapper
 {
 	private static readonly ConcurrentDictionary<(Type source, Type destination), Delegate> MapperCache = new();
-	private static readonly HashSet<string> MappingWarnings = new();
+	private static readonly HashSet<string> MappingWarnings = [];
 
 	static DtoMapper()
 	{
@@ -32,7 +35,18 @@ public static class DtoMapper
 		Delegate mapper = MapperCache.GetOrAdd(key, BuildMapper);
 
 		Func<TSource, TDest> mapperFunc = (Func<TSource, TDest>)mapper;
-		return mapperFunc(source);
+		TDest ob;
+
+		try
+		{
+			ob = mapperFunc(source);
+		}
+		catch (Exception ex)
+		{
+			throw new MapperException(ex);
+		}
+
+		return ob;
 	}
 
 	/// <summary>
@@ -49,16 +63,15 @@ public static class DtoMapper
 		foreach (Type type in typesWithMapping)
 		{
 			MappedObjectAttribute? attr = type.GetCustomAttribute<MappedObjectAttribute>();
-			if (attr != null)
-			{
-				// Build bidirectional mappers
-				MethodInfo? sourceToDestMethod = typeof(DtoMapper).GetMethod(
-					nameof(BuildAndCacheMapper),
-					BindingFlags.NonPublic | BindingFlags.Static);
+			if (attr == null) continue;
 
-				sourceToDestMethod!.MakeGenericMethod(type, attr.Other).Invoke(null, Array.Empty<object>());
-				sourceToDestMethod!.MakeGenericMethod(attr.Other, type).Invoke(null, Array.Empty<object>());
-			}
+			// Build bidirectional mappers
+			MethodInfo? sourceToDestMethod = typeof(DtoMapper).GetMethod(
+				nameof(BuildAndCacheMapper),
+				BindingFlags.NonPublic | BindingFlags.Static);
+
+			sourceToDestMethod!.MakeGenericMethod(type, attr.Other).Invoke(null, []);
+			sourceToDestMethod!.MakeGenericMethod(attr.Other, type).Invoke(null, []);
 		}
 	}
 
@@ -68,11 +81,10 @@ public static class DtoMapper
 	private static void BuildAndCacheMapper<TSource, TDest>() where TDest : new()
 	{
 		(Type, Type) key = (typeof(TSource), typeof(TDest));
-		if (!MapperCache.ContainsKey(key))
-		{
-			Func<TSource, TDest> mapper = BuildMapper<TSource, TDest>(key);
-			MapperCache.TryAdd(key, mapper);
-		}
+		if (MapperCache.ContainsKey(key)) return;
+
+		Func<TSource, TDest> mapper = BuildMapper<TSource, TDest>(key);
+		MapperCache.TryAdd(key, mapper);
 	}
 
 
@@ -88,10 +100,7 @@ public static class DtoMapper
 		ParameterExpression sourceParam = Expression.Parameter(sourceType, "source");
 		ParameterExpression destVar = Expression.Variable(destType, "destination");
 
-		List<Expression> expressions = new()
-		{
-			Expression.Assign(destVar, Expression.New(destType))
-		};
+		List<Expression> expressions = [Expression.Assign(destVar, Expression.New(destType))];
 
 		List<PropertyInfo> sourceProps = sourceType.GetProperties(
 				BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance)
@@ -111,21 +120,20 @@ public static class DtoMapper
 				p.Name.Equals(sourceProp.Name, StringComparison.OrdinalIgnoreCase) &&
 				p.PropertyType == sourceProp.PropertyType);
 
-			if (destProp != null)
-			{
-				MemberExpression sourceValue = Expression.Property(sourceParam, sourceProp);
-				BinaryExpression assignment = Expression.Assign(
-					Expression.Property(destVar, destProp),
-					sourceValue);
+			if (destProp == null) continue;
 
-				expressions.Add(assignment);
-				mappedDestProps.Add(destProp.Name);
-			}
+			MemberExpression sourceValue = Expression.Property(sourceParam, sourceProp);
+			BinaryExpression assignment = Expression.Assign(
+				Expression.Property(destVar, destProp),
+				sourceValue);
+
+			expressions.Add(assignment);
+			mappedDestProps.Add(destProp.Name);
 		}
 
 		// Warn about unmapped destination properties
 		List<PropertyInfo> unmappedProps = destProps.Where(p => !mappedDestProps.Contains(p.Name)).ToList();
-		if (unmappedProps.Any())
+		if (unmappedProps.Count != 0)
 		{
 			string warningKey = $"{sourceType.Name} -> {destType.Name}";
 			if (MappingWarnings.Add(warningKey))
@@ -138,7 +146,7 @@ public static class DtoMapper
 
 		expressions.Add(destVar);
 
-		BlockExpression body = Expression.Block(new[] { destVar }, expressions);
+		BlockExpression body = Expression.Block([destVar], expressions);
 		Expression<Func<TSource, TDest>> lambda = Expression.Lambda<Func<TSource, TDest>>(body, sourceParam);
 
 		return lambda.Compile();
@@ -156,10 +164,7 @@ public static class DtoMapper
 		ParameterExpression sourceParam = Expression.Parameter(sourceType, "source");
 		ParameterExpression destVar = Expression.Variable(destType, "destination");
 
-		List<Expression> expressions = new()
-		{
-			Expression.Assign(destVar, Expression.New(destType))
-		};
+		List<Expression> expressions = [Expression.Assign(destVar, Expression.New(destType))];
 
 		List<PropertyInfo> sourceProps = sourceType.GetProperties(
 				BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance)
@@ -179,16 +184,14 @@ public static class DtoMapper
 				p.Name.Equals(sourceProp.Name, StringComparison.OrdinalIgnoreCase) &&
 				p.PropertyType == sourceProp.PropertyType);
 
-			if (destProp != null)
-			{
-				MemberExpression sourceValue = Expression.Property(sourceParam, sourceProp);
-				BinaryExpression assignment = Expression.Assign(
-					Expression.Property(destVar, destProp),
-					sourceValue);
+			if (destProp == null) continue;
+			MemberExpression sourceValue = Expression.Property(sourceParam, sourceProp);
+			BinaryExpression assignment = Expression.Assign(
+				Expression.Property(destVar, destProp),
+				sourceValue);
 
-				expressions.Add(assignment);
-				mappedDestProps.Add(destProp.Name);
-			}
+			expressions.Add(assignment);
+			mappedDestProps.Add(destProp.Name);
 		}
 
 		// Warn about unmapped destination properties
@@ -219,9 +222,8 @@ public static class DtoMapper
 ///     the two types.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public class MappedObjectAttribute(Type self, Type other) : Attribute
+public class MappedObjectAttribute(Type other) : Attribute
 {
-	public Type Self { get; } = self;
 	public Type Other { get; } = other;
 }
 
@@ -241,3 +243,15 @@ public class ExplicitPropMapAttribute(string sourceProp, string destProp) : Attr
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
 public class SuppressUnmappedWarningAttribute : Attribute;
+
+/// <summary>
+/// Exception raised during type mapping.
+/// </summary>
+/// <param name="inner">Exception causing the raising of this exception.</param>
+public class MapperException(Exception inner) : Exception
+{
+	/// <summary>
+	/// Internal mapper exception that caused this exception to be raised.
+	/// </summary>
+	public Exception Inner = inner;
+}

@@ -2,7 +2,7 @@
 
 namespace Api.Db.Repos;
 
-public interface IAuditLogsRepo
+public interface IAuditLogRepo
 {
 	Task<AuditLogDbm> Create(CreateAuditLogDbo ob);
 }

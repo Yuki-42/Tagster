@@ -5,7 +5,7 @@ using Npgsql;
 namespace Api.Db.Repos.Impml;
 
 /// <inheritdoc />
-public class PgUsersRepo(IDbConnectionProvider con) : IUsersRepo
+public class PgUserRepo(IDbConnectionProvider con) : IUserRepo
 {
 	/// <inheritdoc />
 	public async Task<UserDbm?> Get(Guid id)

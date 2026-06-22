@@ -6,7 +6,7 @@ namespace Api.Db.Models;
 /// <summary>
 /// User database model.
 /// </summary>
-[MappedObject(typeof(UserDbm), typeof(UserDto))]
+[MappedObject(typeof(UserDto))]
 public class UserDbm : BaseDbm
 {
 	/// <summary>

@@ -5,7 +5,7 @@ namespace Api.Db.Repos;
 /// <summary>
 /// Users repository.
 /// </summary>
-public interface IUsersRepo
+public interface IUserRepo
 {
 	/// <summary>
 	/// Get user by ID.
