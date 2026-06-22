@@ -9,7 +9,7 @@ using OtpNet;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Build config (in multiple steps for debugging)
-IConfiguration configProvider = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
+IConfiguration configProvider = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddIniFile("secrets.ini").Build();
 
 Config config = ConfigBuilder.Build<Config>(configProvider);
 
