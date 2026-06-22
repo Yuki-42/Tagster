@@ -6,7 +6,6 @@ using Api.Db.Repos;
 using Api.Dto;
 using Api.Dto.Auth;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Primitives;
 
@@ -160,6 +159,6 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 			StatusCode = StatusCodes.Status403Forbidden,
 			Content = errorMessage
 		};
-		return;
 	}
+
 }

@@ -51,7 +51,6 @@ public class MediaController : ControllerBase
 	/// </summary>
 	/// <param name="pg">Page number.</param>
 	/// <param name="count">Number of items returned per page. Maximum of 500.</param>
-	/// <response code="">Error in query.</response>
 	[HttpGet("/tags/")]
 	public async Task<ActionResult<IList<TagDto>>> ListTags([FromQuery] int pg = 0, [FromQuery] int count = 100)
 	{
