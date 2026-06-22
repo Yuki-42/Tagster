@@ -3,6 +3,7 @@ using Api;
 using Api.Db;
 using Api.Db.Repos;
 using Api.Db.Repos.Impml;
+using Api.Filters;
 using EchoLib.Configuration;
 using Microsoft.OpenApi;
 using OtpNet;
@@ -23,6 +24,7 @@ if (!keyFile.Exists)
 
 // Add controllers
 builder.Services.AddControllers();
+builder.Services.AddScoped<ExceptionHandlerMiddleware>();
 
 // Add database
 builder.Services.AddScoped<IDbConnectionProvider, PgDbConnectionProvider>();
@@ -39,15 +41,15 @@ builder.Services.AddSwaggerGen(options =>
 	options.SwaggerDoc("v1", new OpenApiInfo { Title = "Tagster API", Version = "v1" });
 	options.IncludeXmlComments(docsFile);
 
-	options.AddSecurityDefinition("key", new OpenApiSecurityScheme
+	options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme()
 	{
-		Description = "Api key",
-		Name = "key",
+		Name = "X-Api-Key",
+		Description = "Enter API key in header `X-Api-Key`",
 		In = ParameterLocation.Header,
 		Type = SecuritySchemeType.ApiKey
 	});
 
-	// TODO: fix why the fuck the security requirements aren't working ffs
+	options.OperationFilter<RequireApiKeyOperationFilter>();
 });
 
 builder.Services.AddEndpointsApiExplorer();
