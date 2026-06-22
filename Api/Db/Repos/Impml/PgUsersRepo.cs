@@ -22,7 +22,9 @@ public class PgUsersRepo(IDbConnectionProvider con) : IUsersRepo
 		// Create command
 		const string cmd = "SELECT * FROM public.users WHERE email = @Email";
 
-		return await db.QueryFirstOrDefaultAsync<UserDbm>(cmd, db);
+		return await db.QueryFirstOrDefaultAsync<UserDbm>(cmd, new {
+			Email = email
+		});
 	}
 
 	/// <inheritdoc />
@@ -36,6 +38,6 @@ public class PgUsersRepo(IDbConnectionProvider con) : IUsersRepo
 		                   "(@Username, @Email, @Password) RETURNING *";
 
 		// Execute command
-		return await db.QueryFirstAsync<UserDbm>(cmd, db);
+		return await db.QueryFirstAsync<UserDbm>(cmd, user);
 	}
 }

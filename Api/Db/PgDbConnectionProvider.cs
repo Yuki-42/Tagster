@@ -18,7 +18,7 @@ public class PgDbConnectionProvider : IDbConnectionProvider
 
 		// Build the connection string
 		_connectionString =
-			$"Host={config.Host};Port={config.Port};Database={config.Name};Username={config.Credentials["Main"].Username};Password={config.Credentials["Main"].Password};";
+			$"Host={config.Host};Port={config.Port};Database={config.Name};Username={config.Credentials["MAIN"].Username};Password={config.Credentials["MAIN"].Password};";
 	}
 
 	/// <inheritdoc />

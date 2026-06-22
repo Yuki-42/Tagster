@@ -30,6 +30,7 @@ public class AuthController(Config diConfig, IUsersRepo diUsersRepo, IApiKeyRepo
 	/// create an account, but may be expanded in the future to allow anyone to create an account. For now,
 	/// this endpoint is not protected, but in the future it may require an admin token or similar to prevent abuse.
 	/// </summary>
+	/// <response code="503"/>
 	[HttpPost("/signup")]
 	public async Task<ActionResult<UserDto>> Signup([FromBody] SignupDto dto)
 	{

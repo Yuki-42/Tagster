@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE SCHEMA audit;
 
 /* Allow Tagster-API-Main to connect to the database and read/write to the tables it needs to access, but not modify the database schema or access other databases on the server. */
-GRANT CONNECT ON DATABASE "Tagster" TO "Tagster-API-Main";
+GRANT CONNECT ON DATABASE tagster TO "Tagster-API-Main";
 
 GRANT USAGE ON SCHEMA public TO "Tagster-API-Main";
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "Tagster-API-Main";

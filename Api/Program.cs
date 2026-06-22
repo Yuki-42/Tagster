@@ -8,11 +8,10 @@ using OtpNet;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Build config
-Config config = ConfigBuilder.Build<Config>(new ConfigurationBuilder()
-	.AddJsonFile("appsettings.json")
-	.AddEnvironmentVariables()
-	.Build());
+// Build config (in multiple steps for debugging)
+IConfiguration configProvider = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
+
+Config config = ConfigBuilder.Build<Config>(configProvider);
 
 builder.Services.AddSingleton(config);
 
