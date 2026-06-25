@@ -3,6 +3,7 @@ using Api.Db.Repos;
 using Api.Dto;
 using Api.Dto.Media;
 using Api.Filters;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
@@ -52,6 +53,7 @@ public class MediaController : ControllerBase
 	/// <param name="pg">Page number.</param>
 	/// <param name="count">Number of items returned per page. Maximum of 500.</param>
 	[HttpGet("/tags/")]
+	[AllowAnonymous]
 	public async Task<ActionResult<IList<TagDto>>> ListTags([FromQuery] int pg = 0, [FromQuery] int count = 100)
 	{
 		// Ensure count does not exceed 500

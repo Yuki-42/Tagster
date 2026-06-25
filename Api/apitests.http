@@ -1,0 +1,38 @@
+﻿###
+
+POST http://localhost:5158/signup
+X-User-Agent: Test-Agent 1
+Content-Type: application/json
+
+{
+    "username": "test",
+    "password": "gnlkfjdsngkjlfds",
+    "email": "test@testing.test",
+    "ownerotp": "045462"
+}
+
+### Session Create Test
+
+POST http://localhost:5158/login
+X-User-Agent: Test-Agent 1
+Content-Type: application/json
+
+{
+    "email": "test@testing.test",
+    "password": "gnlkfjdsngkjlfds"
+}
+
+###
+
+POST http://localhost:5158/tags
+X-Api-Key:{{apiKey}}
+X-User-Agent: Test-Agent 1
+Content-Type: application/json
+
+{
+    "name": "test",
+    "color": "#ff0000"
+}
+
+
+

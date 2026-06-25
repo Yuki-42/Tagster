@@ -29,14 +29,14 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		string errorMessage;
 
 		// Try and retrieve API key from header
-		if (!context.HttpContext.Request.Headers.TryGetValue("key", out StringValues keyString) || keyString == "")
+		if (!context.HttpContext.Request.Headers.TryGetValue("X-Api-Key", out StringValues keyString) || keyString == "")
 		{
 			errorMessage = "No API key provided";
 			goto NotAuthenticated;
 		}
 
 		// Try and convert key string into a sane value 
-		ApiKeyDto? netKey = JsonSerializer.Deserialize<ApiKeyDto>(Encoding.UTF8.GetString(Convert.FromBase64String(keyString!)));
+		ApiKeyDto? netKey = ApiKeyDto.FromString(keyString!);
 
 		if (netKey is null)
 		{
@@ -57,7 +57,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		}
 
 		// Ensure that both versions of the key match
-		if (dbKey.KeyValue != netKey.Signature ||
+		if (dbKey.Signature != netKey.Signature ||
 		    dbKey.Issued != netKey.Issued ||
 		    dbKey.Expires != netKey.Expires)
 		{
@@ -75,7 +75,8 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 
 		// Ensure hidden attributes match correctly (for now this is just the user agent header which is incredibly easy to spoof
 		// For this reason, we do not expose the user agent header for the DTO 
-		if (dbKey.UserAgent != context.HttpContext.Request.Headers.UserAgent)
+		if (dbKey.UserAgent != context.HttpContext.Request.Headers.UserAgent ||
+		    dbKey.IpAddress != context.HttpContext.Connection.RemoteIpAddress?.ToString())
 		{
 			_ = logRepo.Create(new CreateAuditLogDbo
 			{
@@ -90,7 +91,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		}
 
 		// Ensure key is not expired
-		if (dbKey.Expires <= DateTime.UtcNow)
+		if (dbKey.Expires >= DateTime.UtcNow)
 		{
 			// Give 1 week of "API key is expired" messages before we delete the API key and start giving "API key not found" messages
 			if (dbKey.Expires.AddDays(7) <= DateTime.UtcNow)

@@ -8,16 +8,16 @@ namespace Api.Db.Repos.Impml;
 public class PgApiKeyRepo(IDbConnectionProvider con) : IApiKeyRepo
 {
 	/// <inheritdoc />
-	public async Task<ApiKeyDbm?> Get(string keyValue, bool includeInactive = false)
+	public async Task<ApiKeyDbm?> Get(string signature, bool includeInactive = false)
 	{
 		// Get db connection
 		await using NpgsqlConnection db = await con.Get<NpgsqlConnection>();
 
 		// Command text
-		const string cmd = "SELECT * FROM public.api_keys WHERE key_value = @KeyValue";
+		const string cmd = "SELECT * FROM public.api_keys WHERE signature = @Signature";
 
 		// Execute
-		return await db.QueryFirstOrDefaultAsync<ApiKeyDbm>(cmd, new { KeyValue = keyValue });
+		return await db.QueryFirstOrDefaultAsync<ApiKeyDbm>(cmd, new { Signature = signature });
 	}
 
 	/// <inheritdoc />
@@ -33,8 +33,8 @@ public class PgApiKeyRepo(IDbConnectionProvider con) : IApiKeyRepo
 		await using NpgsqlConnection db = await con.Get<NpgsqlConnection>();
 
 		// Command text
-		const string cmd = "INSERT INTO public.api_keys (key_value, user_id, issued, expires, user_agent, ip_address, friendly_name) VALUES " +
-		                   "(@KeyValue, @UserId, @Issued, @Expires, @UserAgent, @IpAddress, @FriendlyName) RETURNING *";
+		const string cmd = "INSERT INTO public.api_keys (signature, user_id, issued, expires, user_agent, ip_address, friendly_name) VALUES " +
+		                   "(@Signature, @UserId, @Issued, @Expires, @UserAgent, @IpAddress, @FriendlyName) RETURNING *";
 
 		return await db.QueryFirstAsync<ApiKeyDbm>(cmd, ob);
 	}

@@ -16,17 +16,12 @@ public class ApiKeyDbm : BaseDbm
 	/// <summary>
 	/// Signed key data issued to user as identifier.
 	/// </summary>
-	public required string KeyValue { get; init; }
+	public required string Signature { get; init; }
 
 	/// <summary>
 	/// ID of the user this API key belongs to.
 	/// </summary>
 	public required Guid UserId { get; init; }
-
-	/// <summary>
-	/// Signature of
-	/// </summary>
-	public required string Signature { get; init; }
 
 	/// <summary>
 	/// Timestamp this key was issued at.
@@ -78,7 +73,7 @@ public class ApiKeyDbm : BaseDbm
 public class InsertApiKeyDbm
 {
 	/// <inheritdoc cref="ApiKeyDbm"/>
-	public required string KeyValue { get; init; }
+	public required string Signature { get; init; }
 
 	/// <inheritdoc cref="ApiKeyDbm"/>
 	public required Guid UserId { get; init; }

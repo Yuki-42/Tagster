@@ -18,11 +18,9 @@ public class TagDto
 	public required string Name { get; set; }
 
 	/// <summary>
-	/// Tag colour.
-	///
-	/// 8 Digit hex encoded as an integer for efficiency.
+	/// Tag colour as hexadecimal.
 	/// </summary>
-	public uint? Colour { get; set; } = null;
+	public string? Colour { get; set; } = null;
 
 	/// <summary>
 	/// Tag description.
@@ -40,7 +38,7 @@ public class CreateTagDto
 	public required string Name { get; set; }
 
 	/// <inheritdoc cref="TagDto.Colour" />
-	public uint? Colour { get; set; } = null;
+	public string? Colour { get; set; } = null;
 
 	/// <inheritdoc cref="TagDto.Description" />
 	public string? Description { get; init; }

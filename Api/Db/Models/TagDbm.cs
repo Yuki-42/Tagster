@@ -13,7 +13,7 @@ public class TagDbm: BaseDbm
 	public required string Name { get; set; }
 
 	/// <inheritdoc cref="TagDto.Colour"/>
-	public uint? Colour { get; set; } = null;
+	public string? Colour { get; set; } = null;
 
 	/// <inheritdoc cref="TagDto.Description"/>
 	public string? Description { get; init; }
@@ -28,7 +28,7 @@ public class InsertTagDbm
 	public required string Name { get; set; }
 
 	/// <inheritdoc cref="TagDto.Colour"/>
-	public uint? Colour { get; set; } = null;
+	public string? Colour { get; set; } = null;
 
 	/// <inheritdoc cref="TagDto.Description"/>
 	public string? Description { get; init; }

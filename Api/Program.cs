@@ -3,10 +3,11 @@ using Api;
 using Api.Db;
 using Api.Db.Repos;
 using Api.Db.Repos.Impml;
-using Api.Filters;
 using EchoLib.Configuration;
 using Microsoft.OpenApi;
-using OtpNet;
+
+// Configure dapper
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -17,10 +18,7 @@ builder.Services.AddSingleton(config);
 
 // Check if the path specified for RSA private key is present, if not, generate one
 FileInfo keyFile = new(config.AuthRequirements.RsaPrivateKeyPath);
-if (!keyFile.Exists)
-{
-	File.WriteAllText(keyFile.FullName, RSA.Create().ExportRSAPrivateKeyPem());
-}
+if (!keyFile.Exists) File.WriteAllText(keyFile.FullName, RSA.Create().ExportRSAPrivateKeyPem());
 
 // Add controllers
 builder.Services.AddControllers();
@@ -37,12 +35,13 @@ builder.Services.AddScoped<ITagRepo, PgTagRepo>();
 // Add api explorer and swagger ect
 string docsFile = Path.Combine(AppContext.BaseDirectory, "Api.xml");
 
+/*
 builder.Services.AddSwaggerGen(options =>
 {
 	options.SwaggerDoc("v1", new OpenApiInfo { Title = "Tagster API", Version = "v1" });
 	options.IncludeXmlComments(docsFile);
 
-	options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme()
+	options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
 	{
 		Name = "X-Api-Key",
 		Description = "Enter API key in header `X-Api-Key`",
@@ -50,10 +49,17 @@ builder.Services.AddSwaggerGen(options =>
 		Type = SecuritySchemeType.ApiKey
 	});
 
-	options.OperationFilter<RequireApiKeyOperationFilter>();
-});
+	options.AddSecurityRequirement(o =>
+	{
 
-builder.Services.AddEndpointsApiExplorer();
+		return new OpenApiSecurityRequirement
+		{
+			{ new OpenApiSecuritySchemeReference("ApiKey"), [] }
+		};
+	});
+});
+*/
+
 builder.Services.AddOpenApi();
 
 WebApplication app = builder.Build();
@@ -61,13 +67,13 @@ WebApplication app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-	app.UseSwagger();
-	app.UseSwaggerUI();
+	app.MapOpenApi();
 }
 
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

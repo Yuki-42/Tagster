@@ -140,7 +140,7 @@ public class AuthController : ControllerBase
 		// If we get here, the credentials are valid. Create a new API key for the user and return it.
 		ApiKeyDbm apiKey = await _apiKeys.Insert(new InsertApiKeyDbm
 			{
-				KeyValue = signature,
+				Signature = signature,
 				UserId = user.Id,
 				Issued = issued,
 				Expires = expires,
