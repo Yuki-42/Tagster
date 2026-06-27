@@ -33,8 +33,8 @@ public class PgApiKeyRepo(IDbConnectionProvider con) : IApiKeyRepo
 		await using NpgsqlConnection db = await con.Get<NpgsqlConnection>();
 
 		// Command text
-		const string cmd = "INSERT INTO public.api_keys (signature, user_id, issued, expires, user_agent, ip_address, friendly_name) VALUES " +
-		                   "(@Signature, @UserId, @Issued, @Expires, @UserAgent, @IpAddress, @FriendlyName) RETURNING *";
+		const string cmd = "INSERT INTO public.api_keys (signature, user_id, issued, expires, user_agent, ip_address, friendly_name, permissions) VALUES " +
+		                   "(@Signature, @UserId, @Issued, @Expires, @UserAgent, @IpAddress, @FriendlyName, @Permissions) RETURNING *";
 
 		return await db.QueryFirstAsync<ApiKeyDbm>(cmd, ob);
 	}

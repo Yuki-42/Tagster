@@ -39,7 +39,11 @@ public class ApiKeyDto
 	/// <returns>Key model.</returns>
 	public static ApiKeyDto? FromString(string key)
 	{
-		return JsonSerializer.Deserialize<ApiKeyDto>(Encoding.UTF8.GetString(Convert.FromBase64String(key)));
+		return JsonSerializer.Deserialize<ApiKeyDto>(
+			Encoding.UTF8.GetString(
+				Convert.FromBase64String(key)
+				)
+			);
 	}
 
 	/// <summary>

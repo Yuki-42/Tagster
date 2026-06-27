@@ -119,7 +119,8 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		}
 
 		// Ensure key has required permissions flags
-		if ((dbKey.Permissions & permissions) != permissions)
+		if ((dbKey.Permissions & permissions) != permissions 
+		    && !dbKey.Permissions.HasFlag(ApiKeyPermissions.Admin))
 		{
 			_ = logRepo.Create(new CreateAuditLogDbo
 			{

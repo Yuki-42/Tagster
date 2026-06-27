@@ -1,7 +1,6 @@
-﻿###
+﻿### User Account Creation Test
 
 POST http://localhost:5158/signup
-X-User-Agent: Test-Agent 1
 Content-Type: application/json
 
 {
@@ -14,7 +13,6 @@ Content-Type: application/json
 ### Session Create Test
 
 POST http://localhost:5158/login
-X-User-Agent: Test-Agent 1
 Content-Type: application/json
 
 {
@@ -22,17 +20,34 @@ Content-Type: application/json
     "password": "gnlkfjdsngkjlfds"
 }
 
-###
+### Tag Create Test
 
 POST http://localhost:5158/tags
 X-Api-Key:{{apiKey}}
-X-User-Agent: Test-Agent 1
 Content-Type: application/json
 
 {
     "name": "test",
-    "color": "#ff0000"
+    "colour": "#ff0000"
 }
 
+### Tag Delete Test - pt.1
 
 
+POST http://localhost:5158/tags
+X-Api-Key:{{apiKey}}
+Content-Type: application/json
+
+{
+    "name": "tag-delete-test",
+    "colour": "#ff0000"
+} 
+
+> {% client.global.set("delete-tag-id", response.body.id) %}
+
+
+
+### Tag Delete Test - pt.2
+
+DELETE http://localhost:5158/tags/{{delete-tag-id}}
+X-Api-Key:{{apiKey}}

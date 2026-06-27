@@ -65,6 +65,7 @@ CREATE TABLE public.api_keys
     user_id       uuid      NOT NULL,
     issued        timestamp NOT NULL,
     expires       timestamp NOT NULL,
+    permissions   int       NOT NULL,
     user_agent    text      NOT NULL,
     ip_address    text      NOT NULL,
     friendly_name text,

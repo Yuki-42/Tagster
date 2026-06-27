@@ -86,5 +86,22 @@ public class MediaController : ControllerBase
 		);
 	}
 
+	/// <summary>
+	/// Delete a tag. 
+	/// </summary>
+	/// <param name="id">Tag ID to delete.</param>
+	[HttpDelete("/tags/{id:guid}")]
+	[ApiKey(ApiKeyPermissions.DeleteTag)]
+	public async Task<ActionResult> DeleteTag(Guid id)
+	{
+		// Check if tag exists
+		if (await _tags.Get(id) is null) return NotFound();
+		
+		// Delete tag 
+		await _tags.Delete(id);
+
+		return Ok();
+	}
+
 	#endregion
 }

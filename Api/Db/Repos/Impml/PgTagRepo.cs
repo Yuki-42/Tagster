@@ -55,4 +55,12 @@ public class PgTagRepo(IDbConnectionProvider con) : ITagRepo
 
 		return await db.QueryFirstAsync<TagDbm>(cmd, ob);
 	}
+
+	/// <inheritdoc />
+	public async Task Delete(Guid id)
+	{
+		await using NpgsqlConnection db = await con.Get<NpgsqlConnection>();
+		const string cmd = "DELETE FROM public.tags WHERE id = @Id";
+		await db.ExecuteAsync(cmd, new { Id = id });
+	}
 }
