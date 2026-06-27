@@ -44,41 +44,10 @@ public class Config
 	[ConfigModel]
 	public class AuthRequirementsModel
 	{
-		private static string? _keyCache = null!;
-
-		/// <summary>
-		/// Cached helper for reading RSA private key to avoid working with files when not needed.
-		/// </summary>
-		[ConfigIgnore]
-		public string RsaPrivateKey
-		{
-			get
-			{
-				// Ensures that the property does not throw an error in EchoLib.Config
-				if (RsaPrivateKeyPath is null) return "";
-
-				if (_keyCache != null) return _keyCache;
-
-				_keyCache = File.ReadAllText(RsaPrivateKeyPath);
-				return _keyCache;
-			}
-		}
-
 		/// <summary>
 		/// Minimum account password length. 
 		/// </summary>
 		public required int PasswordLength { get; init; }
-
-		/// <summary>
-		/// Server owner/administrator OTP secret.
-		/// </summary>
-		[ConfigSecret]
-		public required string OtpSecret { get; init; }
-
-		/// <summary>
-		/// Path to server private RSA key for API key management.
-		/// </summary>
-		public required string RsaPrivateKeyPath { get; init; }
 
 		/// <summary>
 		/// Length of API key lifespan before re-authentication is required.

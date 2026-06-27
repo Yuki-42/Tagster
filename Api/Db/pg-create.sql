@@ -3,13 +3,14 @@ CREATE USER "Tagster-API-Audit" WITH PASSWORD '';
 CREATE USER "Tagster-API-Main" WITH PASSWORD '';
 
 /* Create the database and set the owner to Tagster-API-Audit, which will have full permissions on the database. Tagster-API-Main will have limited permissions. */
-CREATE DATABASE "Tagster" OWNER "Tagster-API-Audit";
+CREATE DATABASE tagster OWNER "Tagster-API-Audit";
 
 /* Include uuid-ossp extension for generating UUIDs. */
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 /* Audit schema must only be select-insert for Tagster-API-Main. Tagser-API-Audit should have full permissions on the audit schema. */
 CREATE SCHEMA audit;
+CREATE SCHEMA protected;
 
 /* Allow Tagster-API-Main to connect to the database and read/write to the tables it needs to access, but not modify the database schema or access other databases on the server. */
 GRANT CONNECT ON DATABASE tagster TO "Tagster-API-Main";
@@ -21,6 +22,10 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "Tagster-API-Main";
 GRANT USAGE ON SCHEMA audit TO "Tagster-API-Main";
 GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA audit TO "Tagster-API-Main";
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA audit TO "Tagster-API-Main";
+
+GRANT USAGE ON SCHEMA protected TO "Tagster-API-Main";
+GRANT SELECT, UPDATE ON ALL TABLES IN SCHEMA protected TO "Tagster-API-Main";
+GRANT SELECT, USAGE ON ALL SEQUENCES IN SCHEMA protected TO "Tagster-API-Main";
 
 /* Note: Don't need to grant permissions to Tagster-API-Audit as it is the owner of the database and has full permissions by default. */
 
@@ -38,6 +43,13 @@ CREATE TABLE audit.log
     comment        text
 );
 
+CREATE TABLE protected.environment 
+(
+    key text NOT NULL PRIMARY KEY,
+    dtype INT NOT NULL,
+    data bytea NOT NULL
+);
+
 CREATE TABLE public.users
 (
     id       uuid NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -49,7 +61,7 @@ CREATE TABLE public.users
 CREATE TABLE public.api_keys
 (
     id            uuid      NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
-    key_value     text      NOT NULL,
+    signature     text      NOT NULL,
     user_id       uuid      NOT NULL,
     issued        timestamp NOT NULL,
     expires       timestamp NOT NULL,

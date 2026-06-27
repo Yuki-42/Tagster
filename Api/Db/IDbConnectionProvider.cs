@@ -17,4 +17,7 @@ public interface IDbConnectionProvider
 	/// <typeparam name="T">Type of DB connection.</typeparam>
 	/// <returns>Opened database connection.</returns>
 	Task<T> Get<T>() where T : DbConnection;
+	
+	/// <inheritdoc cref="IDbConnectionProvider.Get"/>
+	T GetSync<T>() where T : DbConnection;
 }

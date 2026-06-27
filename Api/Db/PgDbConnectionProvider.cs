@@ -33,4 +33,17 @@ public class PgDbConnectionProvider : IDbConnectionProvider
 
 		return (T)(DbConnection)con;
 	}
+
+	/// <inheritdoc/>
+	public T GetSync<T>() where T : DbConnection
+	{
+		// Ensure the requested type is NpgsqlConnection
+		if (typeof(T) != typeof(NpgsqlConnection)) throw new InvalidOperationException($"{nameof(PgDbConnectionProvider)} only supports {nameof(NpgsqlConnection)}");
+
+		// Create and return a new NpgsqlConnection
+		NpgsqlConnection con = new(_connectionString);
+		con.Open();
+
+		return (T)(DbConnection)con;
+	}
 }

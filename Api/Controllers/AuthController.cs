@@ -25,35 +25,24 @@ public class AuthController : ControllerBase
 	// Repos
 	private readonly IUserRepo _user;
 	private readonly IApiKeyRepo _apiKeys;
-
-	// Crypto
-	private readonly Totp _totp;
-	private readonly RSA _rsa;
-
+	private readonly IEnvironmentRepo _env;
+	
 	/// <summary>
 	/// Initialize a new Auth Controller.
 	/// </summary>
-	/// <param name="logger">DI	provided.</param>
-	/// <param name="config">DI	provided.</param>
-	/// <param name="user">DI provided.</param>
-	/// <param name="apiKeys">DI provided.</param>
 	public AuthController(
 		ILogger<AuthController> logger,
 		Config config,
 		IUserRepo user,
-		IApiKeyRepo apiKeys
+		IApiKeyRepo apiKeys,
+		IEnvironmentRepo env
 	)
 	{
 		_logger = logger;
 		_config = config;
 		_user = user;
 		_apiKeys = apiKeys;
-
-		_totp = new Totp(Base32Encoding.ToBytes(config.AuthRequirements.OtpSecret));
-
-		// RSA initialization is a little more complicated
-		_rsa = RSA.Create();
-		_rsa.ImportFromPem(config.AuthRequirements.RsaPrivateKey);
+		_env = env;
 	}
 
 	/// <summary>
@@ -69,8 +58,11 @@ public class AuthController : ControllerBase
 		if (dto.Password.Length < _config.AuthRequirements.PasswordLength)
 			return BadRequest($"Password must be at least {_config.AuthRequirements.PasswordLength} characters long.");
 
+		// Get TOTP secret
+		Totp totp = new(Base32Encoding.ToBytes((await _env.GetAsync(EnvironmentDbm.OtpSecret))!.AsString));
+		
 		// Check submitted OTP against config bound OTP secret
-		if (!_totp.VerifyTotp(dto.OwnerOtp, out _))
+		if (!totp.VerifyTotp(dto.OwnerOtp, out _))
 			return Unauthorized("Invalid OTP.");
 
 		// Check if the email is already in use
@@ -130,9 +122,12 @@ public class AuthController : ControllerBase
 		DateTime issued = DateTime.Now;
 		DateTime expires = DateTime.UtcNow.AddDays(_config.AuthRequirements.SessionLifeDays);
 
+		RSA rsa = RSA.Create();
+		rsa.ImportFromPem((await _env.GetAsync(EnvironmentDbm.PrivateKey))!.AsString);
+		
 		// Calculate signature
 		string signature = Convert.ToBase64String(
-			_rsa.SignData(
+			rsa.SignData(
 				JsonSerializer.SerializeToUtf8Bytes(new { Issued = issued, Expires = expires }),
 				HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1
 			));
