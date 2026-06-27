@@ -1,6 +1,4 @@
-﻿using System.Text;
-using System.Text.Json;
-using Api.Db;
+﻿using Api.Db;
 using Api.Db.Models;
 using Api.Db.Repos;
 using Api.Dto;
@@ -61,7 +59,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		    dbKey.Issued != netKey.Issued ||
 		    dbKey.Expires != netKey.Expires)
 		{
-			_ = logRepo.Create(new CreateAuditLogDbo
+			await logRepo.Create(new CreateAuditLogDbo
 			{
 				TableName = DbHelpers.TblApiKeys,
 				ActionType = AuditActionType.Access,
@@ -78,7 +76,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		if (dbKey.UserAgent != context.HttpContext.Request.Headers.UserAgent ||
 		    dbKey.IpAddress != context.HttpContext.Connection.RemoteIpAddress?.ToString())
 		{
-			_ = logRepo.Create(new CreateAuditLogDbo
+			await logRepo.Create(new CreateAuditLogDbo
 			{
 				TableName = DbHelpers.TblApiKeys,
 				ActionType = AuditActionType.Access,
@@ -104,7 +102,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 			UpdateApiKeyDbm updateModel = DtoMapper.Map<ApiKeyDbm, UpdateApiKeyDbm>(dbKey);
 			updateModel.IsActive = false;
 
-			_ = logRepo.Create(new CreateAuditLogDbo
+			await logRepo.Create(new CreateAuditLogDbo
 			{
 				TableName = DbHelpers.TblApiKeys,
 				ActionType = AuditActionType.Edit,
@@ -122,7 +120,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		if ((dbKey.Permissions & permissions) != permissions 
 		    && !dbKey.Permissions.HasFlag(ApiKeyPermissions.Admin))
 		{
-			_ = logRepo.Create(new CreateAuditLogDbo
+			await logRepo.Create(new CreateAuditLogDbo
 			{
 				TableName = DbHelpers.TblApiKeys,
 				ActionType = AuditActionType.Edit,
@@ -135,7 +133,7 @@ public class ApiKeyAttribute(ApiKeyPermissions permissions) : Attribute, IAsyncA
 		}
 
 		// Key has required permissions, allow execution to proceed after logging key usage
-		_ = logRepo.Create(new CreateAuditLogDbo
+		await logRepo.Create(new CreateAuditLogDbo
 		{
 			TableName = DbHelpers.TblApiKeys,
 			ActionType = AuditActionType.Access,

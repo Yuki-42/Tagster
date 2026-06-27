@@ -1,4 +1,5 @@
-﻿using Api.Db.Models;
+﻿using System.ComponentModel.DataAnnotations;
+using Api.Db.Models;
 
 namespace Api.Dto.Media;
 
@@ -35,7 +36,7 @@ public class TagDto
 public class CreateTagDto
 {
 	/// <inheritdoc cref="TagDto.Name" />
-	public required string Name { get; set; }
+	[Required] public required string Name { get; set; }
 
 	/// <inheritdoc cref="TagDto.Colour" />
 	public string? Colour { get; set; } = null;

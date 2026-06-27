@@ -1,13 +1,16 @@
-﻿### User Account Creation Test
+﻿@ownerotp =481020
+@email = {{$random.internet.safeEmailAddress}}
+
+### User Account Creation Test
 
 POST http://localhost:5158/signup
 Content-Type: application/json
 
 {
     "username": "test",
-    "password": "gnlkfjdsngkjlfds",
-    "email": "test@testing.test",
-    "ownerotp": "045462"
+    "password": "{{test_password}}",
+    "email": "{{email}}",
+    "ownerotp": "{{ownerotp}}"
 }
 
 ### Session Create Test
@@ -16,38 +19,25 @@ POST http://localhost:5158/login
 Content-Type: application/json
 
 {
-    "email": "test@testing.test",
-    "password": "gnlkfjdsngkjlfds"
+    "email": "{{email}}",
+    "password": "{{test_password}}"
 }
+
+> {%  %}
 
 ### Tag Create Test
 
 POST http://localhost:5158/tags
-X-Api-Key:{{apiKey}}
+X-Api-Key:{{@.api_key}}
 Content-Type: application/json
 
 {
-    "name": "test",
-    "colour": "#ff0000"
+    "name": "tag-delete-test"
 }
 
-### Tag Delete Test - pt.1
-
-
-POST http://localhost:5158/tags
-X-Api-Key:{{apiKey}}
-Content-Type: application/json
-
-{
-    "name": "tag-delete-test",
-    "colour": "#ff0000"
-} 
-
-> {% client.global.set("delete-tag-id", response.body.id) %}
-
-
+> {% client.global.set("delete_tag_id", response.body.id) %}
 
 ### Tag Delete Test - pt.2
 
-DELETE http://localhost:5158/tags/{{delete-tag-id}}
-X-Api-Key:{{apiKey}}
+DELETE http://localhost:5158/tags/{{delete_tag_id}}
+X-Api-Key: {{api_key}}
