@@ -104,4 +104,38 @@ public class MediaController : ControllerBase
 	}
 
 	#endregion
+	
+	#region Ingest Managment
+
+	/// <summary>
+	/// Creates a new ingest session.
+	/// </summary>
+	/// <returns>Created ingest.</returns>
+	[HttpPost("/ingest")]
+	[ApiKey(ApiKeyPermissions.CreateIngests)]
+	public async Task<ActionResult<IngestDto>> CreateIngest([FromBody] CreateIngestDto createIngestDto)
+	{
+		// Check to ensure that no ingest with this name already exists 
+		
+		throw new NotImplementedException();
+	}
+	
+	/// <summary>
+	/// Update an existing ingest with more media items.
+	/// </summary>
+	/// <returns></returns>
+	[ApiKey(ApiKeyPermissions.ManageIngests)]
+	[HttpPut("/ingest/")]
+	public async Task<ActionResult<IngestDto>> UpdateIngest([FromBody] CreateIngestDto dto)
+	{
+		// Check to ensure that the dto references an ingest ID
+		if (dto.ExtendingId is null || dto.ExtendingId == Guid.Empty)
+			return BadRequest("No referenced ingest ID");
+		
+		
+		throw new NotImplementedException();
+	}
+	
+	
+	#endregion
 }

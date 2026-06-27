@@ -154,11 +154,21 @@ public enum ApiKeyPermissions
 	/// </summary>
 	ShareFile,
 
-	/// <summary>
+	/// <summary
 	/// Key can be used to create other API keys for other purposes. Should not be given to applications without good reason.
 	/// </summary>
 	ManageApiKeys,
 
+	/// <summary>
+	/// Create ingest sessions.
+	/// </summary>
+	CreateIngests,
+	
+	/// <summary>
+	/// Manage/update ingest sessions.
+	/// </summary>
+	ManageIngests,
+	
 	/// <summary>
 	/// Key can be used to delete files from disk. DANGEROUS.
 	/// </summary>
