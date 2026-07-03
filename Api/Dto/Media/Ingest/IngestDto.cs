@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Api.Dto.Media;
+namespace Api.Dto.Media.Ingest;
 
 /// <summary>
 /// Model for a media ingest session.

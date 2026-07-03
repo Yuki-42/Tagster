@@ -1,4 +1,6 @@
-﻿namespace Api.Db.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Api.Db.Models;
 
 /// <summary>
 /// Audit log row.
@@ -33,7 +35,7 @@ public class AuditLogDbm : BaseDbm
 	/// <summary>
 	/// Previous row state dump (used for important data)
 	/// </summary>
-	public string? PrevState { get; init; } = null;
+	public string? PreviousState { get; init; } = null;
 
 	/// <summary>
 	/// If the action successfully went through, or was blocked/failed for any other reason.
@@ -79,7 +81,7 @@ public class CreateAuditLogDbo
 	/// <summary>
 	/// Previous row state dump (used for important data)
 	/// </summary>
-	public string? PrevState { get; init; } = null;
+	public string? PreviousState { get; init; } = null;
 
 	/// <summary>
 	/// If the action successfully went through, or was blocked/failed for any other reason.

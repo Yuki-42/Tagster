@@ -7,6 +7,11 @@ namespace Api.Db.Repos.Impml;
 /// <inheritdoc />
 public class PgTagRepo(IDbConnectionProvider con) : ITagRepo
 {
+	/// <summary>
+	/// Command text for inserting a tag. Used elsewhere and centralised here.
+	/// </summary>
+	public const string InsertTagCommand = "INSERT INTO public.tags (name, description, colour) VALUES (@Name, @Description, @Colour) RETURNING *";
+
 	/// <inheritdoc />
 	public async Task<IList<TagDbm>> Get(int pg, int count)
 	{
@@ -51,9 +56,7 @@ public class PgTagRepo(IDbConnectionProvider con) : ITagRepo
 		// Get db
 		await using NpgsqlConnection db = await con.Get<NpgsqlConnection>();
 
-		const string cmd = "INSERT INTO public.tags (name, description, colour) VALUES (@Name, @Description, @Colour) RETURNING *";
-
-		return await db.QueryFirstAsync<TagDbm>(cmd, ob);
+		return await db.QueryFirstAsync<TagDbm>(InsertTagCommand, ob);
 	}
 
 	/// <inheritdoc />

@@ -1,9 +1,9 @@
-﻿namespace Api.Dto.Media;
+﻿namespace Api.Dto.Media.Ingest;
 
 /// <summary>
-/// DTO for a bulk media ingest session creation.
+/// DTO for a bulk ingest session creation.
 /// </summary>
-public class CreateMediaIngestSession
+public class CreateIngestSession
 {
 	/// <summary>
 	/// Name for this ingest.
@@ -14,6 +14,11 @@ public class CreateMediaIngestSession
 	/// Initial items already included in the server media directory.
 	/// </summary>
 	public required IList<IngestItemDto> InitialItems { get; init; }
+
+	/// <summary>
+	/// Tags to be created with this ingest.
+	/// </summary>
+	public required IList<CreateTagDto> InitialTags { get; init; }
 
 	// ReSharper disable once ClassNeverInstantiated.Global
 	/// <summary>
@@ -27,9 +32,9 @@ public class CreateMediaIngestSession
 		public required Guid Id { get; init; }
 
 		/// <summary>
-		/// Tags applied to this media item.
+		/// Tags applied to this media item by tag name.
 		/// </summary>
-		public required IEnumerable<Guid> Tags { get; init; }
+		public required IEnumerable<string> Tags { get; init; }
 
 		/// <summary>
 		/// Optional media rating.

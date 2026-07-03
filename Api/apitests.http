@@ -23,19 +23,23 @@ Content-Type: application/json
     "password": "{{test_password}}"
 }
 
-> {%  %}
+> {%
+ console.log(response.body)
+ client.global.set("api_key", response.body) %}
 
 ### Tag Create Test
 
 POST http://localhost:5158/tags
-X-Api-Key:{{@.api_key}}
+X-Api-Key:{{api_key}}
 Content-Type: application/json
 
 {
     "name": "tag-delete-test"
 }
 
-> {% client.global.set("delete_tag_id", response.body.id) %}
+> {%
+console.log(response.body)
+client.global.set("delete_tag_id", response.body.id) %}
 
 ### Tag Delete Test - pt.2
 

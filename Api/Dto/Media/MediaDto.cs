@@ -31,6 +31,11 @@ public class MediaDto
 	public required MediaFileInfo FileInfo { get; init; }
 
 	/// <summary>
+	/// Star rating of this media item.
+	/// </summary>
+	public int? Rating { get; init; }
+
+	/// <summary>
 	/// Tags attached to this image.
 	/// </summary>
 	public required IList<TagDto> Tags { get; init; }

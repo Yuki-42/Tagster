@@ -2,6 +2,7 @@
 using Api.Db.Repos;
 using Api.Dto;
 using Api.Dto.Media;
+using Api.Dto.Media.Ingest;
 using Api.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,14 +19,16 @@ public class MediaController : ControllerBase
 
 	private readonly IMediaRepo _media;
 	private readonly ITagRepo _tags;
+	private readonly IIngestRepo _ingest;
 	private readonly IAuditLogRepo _audit;
 
 	/// <inheritdoc cref="MediaController" />
-	public MediaController(ILogger<MediaController> logger, IMediaRepo media, ITagRepo tags, IAuditLogRepo audit)
+	public MediaController(ILogger<MediaController> logger, IMediaRepo media, ITagRepo tags, IIngestRepo ingest, IAuditLogRepo audit)
 	{
 		_logger = logger;
 		_media = media;
 		_tags = tags;
+		_ingest = ingest;
 		_audit = audit;
 	}
 
@@ -115,8 +118,10 @@ public class MediaController : ControllerBase
 	[ApiKey(ApiKeyPermissions.CreateIngests)]
 	public async Task<ActionResult<IngestDto>> CreateIngest([FromBody] CreateIngestDto createIngestDto)
 	{
-		// Check to ensure that no ingest with this name already exists 
-		
+		// Check to ensure that no ingest with this name already exists
+		if (await _ingest.Get(createIngestDto.Name) != null) return BadRequest("Ingest session already exists.");
+
+		// Create ingest
 		throw new NotImplementedException();
 	}
 	
